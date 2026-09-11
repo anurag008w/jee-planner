@@ -1,0 +1,36 @@
+{
+  "name": "JEE Planner — Lecture Planner 2027",
+  "short_name": "JEE Planner",
+  "description": "392 lectures across Physics, Chemistry & Maths — Calendar, daily plan, off-days, purple/orange prem quality.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#111827",
+  "theme_color": "#6366f1",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["education", "productivity"],
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-maskable.svg", "sizes": "192x192 512x512", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Today",
+      "url": "/?page=today",
+      "description": "Aaj ka plan dekho"
+    },
+    {
+      "name": "Calendar",
+      "url": "/?page=calendar",
+      "description": "Month view + off days"
+    },
+    {
+      "name": "Schedule",
+      "url": "/?page=schedule",
+      "description": "Master schedule"
+    }
+  ]
+}
