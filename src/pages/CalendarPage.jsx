@@ -196,74 +196,75 @@ export default function CalendarPage() {
                     aria-label={`${cell.dateStr}: ${cell.isOff ? 'off day' : cell.lectures.length + ' lectures, ' + cell.completedCount + ' completed'}`}
                     aria-pressed={isSelected}
                     className={`
-                      relative min-h-[64px] sm:min-h-[80px] md:min-h-[100px] p-1 sm:p-1.5 md:p-2 border-b border-r border-gray-50 dark:border-white/[0.02]
-                      transition-all duration-150 text-left hover:bg-gray-50 dark:hover:bg-white/[0.02] active:bg-gray-100 dark:active:bg-white/[0.04]
-                      ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/10 ring-2 ring-inset ring-indigo-500' : ''}
-                      ${cell.isToday ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}
-                      ${cell.isOff ? 'bg-amber-50/60 dark:bg-amber-900/[0.08]' : ''}
-                      ${cell.isMissed && !cell.isOff ? 'ring-1 ring-inset ring-red-300 dark:ring-red-800/60' : ''}
+                      relative min-h-[62px] sm:min-h-[82px] md:min-h-[98px] p-1.5 sm:p-2 border-b border-r border-gray-100 dark:border-white/[0.04]
+                      transition-colors duration-150 text-left
+                      ${isSelected ? 'bg-indigo-50 dark:bg-indigo-500/10' : 'hover:bg-gray-50 dark:hover:bg-white/[0.03] active:bg-gray-100 dark:active:bg-white/[0.05]'}
+                      ${!isSelected && cell.isToday ? 'bg-indigo-50/60 dark:bg-indigo-500/[0.08]' : ''}
+                      ${!isSelected && cell.isOff ? 'bg-amber-50/50 dark:bg-amber-500/[0.05]' : ''}
                     `}
                   >
+                    {isSelected && (
+                      <span className="pointer-events-none absolute inset-0 z-10 ring-2 ring-inset ring-indigo-500" />
+                    )}
+
                     {/* date number */}
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-start justify-between">
                       <span className={`
-                        text-[12px] md:text-[13px] font-semibold w-6 h-6 rounded-full flex items-center justify-center
-                        ${cell.isToday ? 'bg-indigo-600 text-white' : ''}
-                        ${cell.isMissed && !cell.isToday ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-300' : ''}
-                        ${cell.isOff && !cell.isToday && !cell.isMissed ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' : ''}
-                        ${!cell.isOff && !cell.isToday && !cell.isMissed && cell.lectures.length === 0 ? 'text-gray-400 dark:text-gray-500' : ''}
-                        ${!cell.isOff && !cell.isToday && !cell.isMissed && cell.lectures.length > 0 ? 'text-gray-700 dark:text-gray-300' : ''}
+                        text-[13px] md:text-sm font-semibold w-7 h-7 rounded-full flex items-center justify-center leading-none
+                        ${cell.isToday
+                          ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-sm shadow-indigo-500/40'
+                          : cell.isMissed
+                            ? 'text-red-500 dark:text-red-400'
+                            : cell.isOff
+                              ? 'text-amber-600 dark:text-amber-400'
+                              : cell.lectures.length > 0
+                                ? 'text-gray-800 dark:text-gray-100'
+                                : 'text-gray-400 dark:text-gray-600'}
                       `}>
                         {cell.date}
                       </span>
                       {cell.allCompleted && cell.lectures.length > 0 && (
-                        <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                        <span className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center shadow-sm shadow-emerald-500/40">
                           <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>
-                        </div>
+                        </span>
                       )}
                     </div>
 
-                    {cell.isOff && (
-                      <div className="text-[9px] md:text-[10px] text-amber-600 dark:text-amber-400 font-bold">
-                        OFF
-                      </div>
-                    )}
-{cell.isOff && cell.isSunday && (
-  <div className="text-[9px] md:text-[10px] text-red-500 dark:text-red-300 font-medium mt-0.5">
-    Holiday
-  </div>
-)}
-                    {cell.isMissed && (
-                      <div className="flex items-center gap-0.5 text-[9px] md:text-[10px] text-red-500 font-semibold mt-0.5">
-                        <AlertTriangle size={9} />
-                        missed
-                      </div>
-                    )}
-
-                    {cell.lectures.length > 0 && !cell.isOff && (
-                      <div className="space-y-0.5">
-                        <div className="text-[10px] sm:text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                          {cell.lectures.length} lect.
-                        </div>
-                        <div className="flex flex-wrap gap-0.5">
-                          {cell.lectures.map((l) => (
+                    {/* bottom cluster: status + lectures */}
+                    <div className="absolute left-1.5 right-1.5 bottom-1.5 space-y-1">
+                      {cell.isOff ? (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[8.5px] font-bold tracking-wide bg-amber-100/80 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                          {cell.isSunday ? 'HOLIDAY' : 'OFF'}
+                        </span>
+                      ) : cell.lectures.length > 0 ? (
+                        <>
+                          <div className="flex items-center gap-0.5 flex-wrap">
+                            {cell.lectures.slice(0, 6).map((l) => (
+                              <span
+                                key={l.id}
+                                className={`w-1.5 h-1.5 rounded-full ${dotForLecture(l)} ${l.isBacklog ? 'ring-1 ring-red-400' : ''}`}
+                                title={`${dotTitle(l)}${l.isBacklog ? ' (backlog)' : ''}`}
+                              />
+                            ))}
+                            {cell.lectures.length > 6 && (
+                              <span className="text-[8px] font-semibold text-gray-400 dark:text-gray-500">+{cell.lectures.length - 6}</span>
+                            )}
+                          </div>
+                          <div className="w-full h-[3px] rounded-full overflow-hidden bg-gray-200/80 dark:bg-white/10">
                             <div
-                              key={l.id}
-                              className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-sm ${dotForLecture(l)} ${l.isBacklog ? 'ring-1 ring-red-400' : ''}`}
-                              title={`${dotTitle(l)}${l.isBacklog ? ' (backlog)' : ''}`}
+                              className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-500"
+                              style={{ width: `${(cell.completedCount / cell.lectures.length) * 100}%` }}
                             />
-                          ))}
-                        </div>
-                        <div className={`w-full h-1 rounded-full overflow-hidden ${cell.completedCount > 0 ? '' : 'bg-gray-200 dark:bg-white/10'}`}>
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${cell.completedCount > 0 ? 'bg-green-500' : 'bg-gray-300 dark:bg-white/20'}`}
-                            style={{ width: `${(cell.completedCount / cell.lectures.length) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
+                          </div>
+                        </>
+                      ) : cell.isMissed ? (
+                        <span className="inline-flex items-center gap-1 text-[8.5px] font-semibold text-red-500 dark:text-red-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500" /> missed
+                        </span>
+                      ) : null}
+                    </div>
                   </button>
                 );
               })}
