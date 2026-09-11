@@ -173,19 +173,19 @@ export default function CalendarPage() {
       <div className="flex flex-col xl:flex-row gap-6">
         {/* Calendar Grid */}
         <div className="flex-1">
-          <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 p-2 sm:p-3 shadow-sm">
-            <div className="grid grid-cols-7 mb-1 sm:mb-2">
+          <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden">
+            <div className="grid grid-cols-7 border-b border-gray-100 dark:border-white/5">
               {DAYS.map(d => (
-                <div key={d} className={`py-1.5 text-center text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider ${d === 'Sun' ? 'text-red-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                <div key={d} className={`py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider ${d === 'Sun' ? 'text-red-400' : 'text-gray-400 dark:text-gray-500'}`}>
                   {d}
                 </div>
               ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+            <div className="grid grid-cols-7">
               {cells.map((cell, i) => {
                 if (cell.type === 'empty') {
-                  return <div key={`e-${i}`} className="min-h-[68px] sm:min-h-[92px] md:min-h-[108px]" />;
+                  return <div key={`e-${i}`} className="min-h-[80px] md:min-h-[100px] border-b border-r border-gray-50 dark:border-white/[0.02] bg-gray-50/30 dark:bg-white/[0.01]" />;
                 }
 
                 const isSelected = selectedDate === cell.dateStr;
@@ -196,80 +196,75 @@ export default function CalendarPage() {
                     aria-label={`${cell.dateStr}: ${cell.isOff ? 'off day' : cell.lectures.length + ' lectures, ' + cell.completedCount + ' completed'}`}
                     aria-pressed={isSelected}
                     className={`
-                      min-h-[68px] sm:min-h-[92px] md:min-h-[108px] p-1.5 sm:p-2 rounded-xl sm:rounded-2xl border
-                      flex flex-col transition-all duration-150 text-left overflow-hidden
-                      ${isSelected
-                        ? 'bg-indigo-50 dark:bg-indigo-500/15 border-indigo-500 ring-2 ring-indigo-500/40 shadow-lg shadow-indigo-500/15'
-                        : cell.isToday
-                          ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-400 dark:border-indigo-500 shadow-md shadow-indigo-500/10'
-                          : cell.isOff
-                            ? 'bg-amber-50 dark:bg-amber-500/[0.07] border-amber-200 dark:border-amber-500/25'
-                            : cell.isMissed
-                              ? 'bg-red-50/60 dark:bg-red-500/[0.06] border-red-200 dark:border-red-500/25'
-                              : 'bg-gray-50/70 dark:bg-white/[0.03] border-gray-200/70 dark:border-white/10 hover:border-indigo-300 dark:hover:border-indigo-500/40'}
+                      relative min-h-[62px] sm:min-h-[82px] md:min-h-[98px] p-1.5 sm:p-2 border-b border-r border-gray-100 dark:border-white/[0.04]
+                      transition-colors duration-150 text-left
+                      ${isSelected ? 'bg-indigo-50 dark:bg-indigo-500/10' : 'hover:bg-gray-50 dark:hover:bg-white/[0.03] active:bg-gray-100 dark:active:bg-white/[0.05]'}
+                      ${!isSelected && cell.isToday ? 'bg-indigo-50/60 dark:bg-indigo-500/[0.08]' : ''}
+                      ${!isSelected && cell.isOff ? 'bg-amber-50/50 dark:bg-amber-500/[0.05]' : ''}
                     `}
                   >
-                    {/* date row */}
-                    <div className="flex items-center justify-between gap-0.5">
+                    {isSelected && (
+                      <span className="pointer-events-none absolute inset-0 z-10 ring-2 ring-inset ring-indigo-500" />
+                    )}
+
+                    {/* date number */}
+                    <div className="flex items-start justify-between">
                       <span className={`
-                        text-[13px] sm:text-sm font-bold w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center leading-none shrink-0
+                        text-[13px] md:text-sm font-semibold w-7 h-7 rounded-full flex items-center justify-center leading-none
                         ${cell.isToday
-                          ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/40'
+                          ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-sm shadow-indigo-500/40'
                           : cell.isMissed
                             ? 'text-red-500 dark:text-red-400'
                             : cell.isOff
                               ? 'text-amber-600 dark:text-amber-400'
                               : cell.lectures.length > 0
-                                ? 'text-gray-900 dark:text-white'
-                                : 'text-gray-400 dark:text-gray-500'}
+                                ? 'text-gray-800 dark:text-gray-100'
+                                : 'text-gray-400 dark:text-gray-600'}
                       `}>
                         {cell.date}
                       </span>
                       {cell.allCompleted && cell.lectures.length > 0 && (
-                        <span className="w-4 h-4 rounded-full bg-emerald-500 items-center justify-center hidden sm:flex shrink-0">
-                          <svg width="9" height="7" viewBox="0 0 10 8" fill="none">
-                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                        <span className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center shadow-sm shadow-emerald-500/40">
+                          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>
                         </span>
                       )}
                     </div>
 
-                    <div className="flex-1" />
-
-                    {/* status zone — normal flow, kabhi overlap nahi */}
-                    {cell.isOff ? (
-                      <span className="self-start max-w-full truncate px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold tracking-wide bg-amber-200/70 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200">
-                        {cell.isSunday ? 'Holiday' : 'Off'}
-                      </span>
-                    ) : cell.lectures.length > 0 ? (
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-[3px] flex-wrap">
-                          {cell.lectures.slice(0, 5).map((l) => (
-                            <span
-                              key={l.id}
-                              className={`w-2 h-2 rounded-full shrink-0 ${dotForLecture(l)} ${l.isBacklog ? 'ring-1 ring-red-400' : ''}`}
-                              title={`${dotTitle(l)}${l.isBacklog ? ' (backlog)' : ''}`}
+                    {/* bottom cluster: status + lectures */}
+                    <div className="absolute left-1.5 right-1.5 bottom-1.5 space-y-1">
+                      {cell.isOff ? (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[8.5px] font-bold tracking-wide bg-amber-100/80 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                          {cell.isSunday ? 'HOLIDAY' : 'OFF'}
+                        </span>
+                      ) : cell.lectures.length > 0 ? (
+                        <>
+                          <div className="flex items-center gap-0.5 flex-wrap">
+                            {cell.lectures.slice(0, 6).map((l) => (
+                              <span
+                                key={l.id}
+                                className={`w-1.5 h-1.5 rounded-full ${dotForLecture(l)} ${l.isBacklog ? 'ring-1 ring-red-400' : ''}`}
+                                title={`${dotTitle(l)}${l.isBacklog ? ' (backlog)' : ''}`}
+                              />
+                            ))}
+                            {cell.lectures.length > 6 && (
+                              <span className="text-[8px] font-semibold text-gray-400 dark:text-gray-500">+{cell.lectures.length - 6}</span>
+                            )}
+                          </div>
+                          <div className="w-full h-[3px] rounded-full overflow-hidden bg-gray-200/80 dark:bg-white/10">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-500"
+                              style={{ width: `${(cell.completedCount / cell.lectures.length) * 100}%` }}
                             />
-                          ))}
-                          {cell.lectures.length > 5 && (
-                            <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500">+{cell.lectures.length - 5}</span>
-                          )}
-                        </div>
-                        <div className="w-full h-1 rounded-full overflow-hidden bg-gray-200 dark:bg-white/15">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${cell.completedCount === cell.lectures.length ? 'bg-emerald-500' : 'bg-gradient-to-r from-indigo-500 to-violet-500'}`}
-                            style={{ width: `${(cell.completedCount / cell.lectures.length) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    ) : cell.isMissed ? (
-                      <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-red-500 dark:text-red-400">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-                        <span className="truncate">Missed</span>
-                      </span>
-                    ) : (
-                      <span className="h-1" />
-                    )}
+                          </div>
+                        </>
+                      ) : cell.isMissed ? (
+                        <span className="inline-flex items-center gap-1 text-[8.5px] font-semibold text-red-500 dark:text-red-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500" /> missed
+                        </span>
+                      ) : null}
+                    </div>
                   </button>
                 );
               })}
