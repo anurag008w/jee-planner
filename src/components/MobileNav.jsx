@@ -13,7 +13,7 @@ export default function MobileNav() {
   const { currentPage, setPage } = useStore();
 
   return (
-    <nav aria-label="Primary" className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#1a1c2b]/95 backdrop-blur-xl border-t border-[var(--color-border)] dark:border-[#2a2b3e] shadow-[0_-4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.35)]">
+    <nav aria-label="Primary" className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#1a1c2b]/95 backdrop-blur-xl border-t border-[var(--color-border)] dark:border-[#2c2f40] shadow-[0_-4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.35)]">
       <div className="flex items-center justify-around px-2 pt-1.5 pb-[max(env(safe-area-inset-bottom),0.375rem)] h-[calc(4rem+env(safe-area-inset-bottom))]">
         {items.map((item) => {
           const Icon = item.icon;

@@ -21,10 +21,10 @@ export default function Sidebar({ mobile }) {
     <aside className={`
       ${mobile ? 'h-full' : 'hidden lg:flex'}
       fixed top-0 left-0 h-screen w-[var(--sidebar-width)] flex-col
-      bg-white dark:bg-[#1a1b2e] border-r border-[var(--color-border)] dark:border-[#2a2b3e]
+      bg-white dark:bg-[#1a1c2b] border-r border-[var(--color-border)] dark:border-[#2c2f40]
       z-50 transition-colors duration-300
     `}>
-      <div className="p-5 border-b border-[var(--color-border)] dark:border-[#2a2b3e]">
+      <div className="p-5 border-b border-[var(--color-border)] dark:border-[#2c2f40]">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-500/25">
             JEE
@@ -69,7 +69,7 @@ export default function Sidebar({ mobile }) {
         })}
       </nav>
 
-      <div className="p-3 border-t border-[var(--color-border)] dark:border-[#2a2b3e]">
+      <div className="p-3 border-t border-[var(--color-border)] dark:border-[#2c2f40]">
         <button
           onClick={toggleTheme}
           className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13.5px] font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 transition-all"

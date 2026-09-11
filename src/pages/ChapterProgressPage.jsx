@@ -157,7 +157,7 @@ export default function ChapterProgressPage() {
                 : `${filterSubject} — 11th priority + base pairing`}
             </p>
           </div>
-          {foundationOpen ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+          {foundationOpen ? <ChevronUp size={16} className="text-gray-400 dark:text-gray-500" /> : <ChevronDown size={16} className="text-gray-400 dark:text-gray-500" />}
         </button>
 
         {foundationOpen && (

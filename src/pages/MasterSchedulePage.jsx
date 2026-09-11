@@ -149,7 +149,7 @@ export default function MasterSchedulePage() {
           className="flex-1 min-w-0 bg-transparent text-[13px] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none"
         />
         {searchQuery && (
-          <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+          <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
             <X size={14} />
           </button>
         )}
