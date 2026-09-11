@@ -75,15 +75,26 @@ jobs:
       - name: Sync Capacitor (embed fresh bundle into Android project)
         run: npx cap sync android
 
-      - name: Build APK (debug — installable on all Android)
+      - name: Decode signing keystore (permanent key → in-place updates)
+        run: |
+          echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > android/jee-planner.keystore
+          ls -la android/jee-planner.keystore
+
+      - name: Build signed APK (stable signature — updates merge in-place)
         working-directory: android
-        run: ./gradlew assembleDebug
+        env:
+          KEYSTORE_PATH: jee-planner.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          APP_VERSION_NAME: ${{ github.ref_name }}
+        run: ./gradlew assembleRelease
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: jee-planner-apk
-          path: android/app/build/outputs/apk/debug/*.apk
+          path: android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -91,4 +102,4 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: android/app/build/outputs/apk/debug/*.apk
+          files: android/app/build/outputs/apk/release/*.apk

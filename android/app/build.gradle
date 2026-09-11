@@ -1,5 +1,28 @@
 apply plugin: 'com.android.application'
 
+// ──────────────────────────────────────────────────────────────────────────
+// Stable in-place updates:
+//  - CI decodes KEYSTORE_B64 → android/jee-planner.keystore, then this file
+//    signs with a PERMANENT key → every APK has the same signature, so Android
+//    lets new builds install OVER the old one (no uninstall needed).
+//  - versionCode comes from the newest git tag (v1.2.3 → 10203) so Android
+//    always sees a real update. Falls back to 1 locally.
+// ──────────────────────────────────────────────────────────────────────────
+def keystorePath = System.getenv('KEYSTORE_PATH') ?: 'jee-planner.keystore'
+def keystoreFile = file(keystorePath)
+def hasSigning = keystoreFile.exists()
+
+def versionCodeFromTag = { ->
+    try {
+        def tag = providers.exec {
+            commandLine 'git', 'describe', '--tags', '--abbrev=0'
+        }.standardOutput.asText.get()
+        def m = (tag =~ /^v(\d+)\.(\d+)\.(\d+)/)
+        if (m) { return (m[0][1].toInteger() * 10000) + (m[0][2].toInteger() * 100) + m[0][3].toInteger() }
+    } catch (Exception ignored) {}
+    return 1
+}
+
 android {
     namespace = "com.jeeplanner.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +30,8 @@ android {
         applicationId "com.jeeplanner.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode versionCodeFromTag()
+        versionName (System.getenv('APP_VERSION_NAME') ?: '1.0')
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +39,30 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (hasSigning) {
+                storeFile keystoreFile
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEY_ALIAS')
+                keyPassword System.getenv('KEY_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (hasSigning) {
+                signingConfig signingConfigs.release
+            }
+        }
+        debug {
+            // Debug builds also use the permanent key so a debug APK installed
+            // on a phone can later be replaced by a release APK (and vice-versa).
+            if (hasSigning) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }

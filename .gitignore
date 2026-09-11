@@ -18,3 +18,6 @@ Thumbs.db
 
 # but src/data is source data — commit it
 !src/data/
+
+# signing key — decoded per-build in CI, never committed
+jee-planner.keystore
