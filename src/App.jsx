@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import useStore from './store/useStore';
+import { apiBase } from './config';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import MobileNav from './components/MobileNav';
@@ -39,7 +40,7 @@ function pushToServer(state) {
     settings: state.settings,
     theme: state.theme,
   };
-  fetch('/api/save', {
+  fetch(apiBase() + '/api/save', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -56,7 +57,7 @@ export default function App() {
   useEffect(() => {
     let mounted = true;
     // Boot: pull the disk copy (master) and merge with local storage.
-    fetch('/api/load')
+    fetch(apiBase() + '/api/load')
       .then((r) => r.json())
       .then((remote) => {
         if (!mounted || !remote || remote.app !== 'jee-planner') return;

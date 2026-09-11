@@ -2,10 +2,6 @@
   "appId": "com.jeeplanner.app",
   "appName": "JEE Planner",
   "webDir": "dist",
-  "server": {
-    "url": "http://10.26.255.106:1601",
-    "cleartext": true
-  },
   "android": {
     "allowMixedContent": true
   }
