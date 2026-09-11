@@ -230,16 +230,16 @@ export default function CalendarPage() {
                         <div className="text-[10px] sm:text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                           {cell.lectures.length} lect.
                         </div>
-                        <div className="hidden sm:flex flex-wrap gap-0.5">
+                        <div className="flex flex-wrap gap-0.5">
                           {cell.lectures.map((l) => (
                             <div
                               key={l.id}
-                              className={`w-2 h-2 rounded-sm ${dotForLecture(l)} ${l.isBacklog ? 'ring-1 ring-red-400' : ''}`}
+                              className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-sm ${dotForLecture(l)} ${l.isBacklog ? 'ring-1 ring-red-400' : ''}`}
                               title={`${dotTitle(l)}${l.isBacklog ? ' (backlog)' : ''}`}
                             />
                           ))}
                         </div>
-                        <div className="w-full h-1 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden hidden sm:block">
+                        <div className={`w-full h-1 rounded-full overflow-hidden ${cell.completedCount > 0 ? '' : 'bg-gray-200 dark:bg-white/10'}`}>
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${cell.completedCount > 0 ? 'bg-green-500' : 'bg-gray-300 dark:bg-white/20'}`}
                             style={{ width: `${(cell.completedCount / cell.lectures.length) * 100}%` }}
