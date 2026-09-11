@@ -1,4 +1,4 @@
-name: Build + Release (JEE Planner — in-place updates)
+name: Build + APK
 
 on:
   push:
@@ -11,8 +11,6 @@ concurrency:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 jobs:
   build:
@@ -42,21 +40,13 @@ jobs:
           node -e "JSON.parse(require('node:fs').readFileSync('dist/manifest.webmanifest','utf8'))" && echo "✔ manifest valid JSON"
           echo "SMOKE OK"
 
-      - name: Upload build artifact (for Pages / manual APK)
+      - name: Upload web artifact
         uses: actions/upload-artifact@v4
         with:
           name: jee-planner-dist
           path: dist/
           if-no-files-found: error
           retention-days: 14
-
-      - name: Deploy to GitHub Pages (installable PWA — auto-updates, no reinstall)
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist/
 
   apk:
     needs: build
@@ -83,10 +73,9 @@ jobs:
         run: npm run build
 
       - name: Sync Capacitor (embed fresh bundle into Android project)
-        run: |
-          npx cap sync android
+        run: npx cap sync android
 
-      - name: Build APK (debug, all-mobile compatible)
+      - name: Build APK (debug — installable on all Android)
         working-directory: android
         run: ./gradlew assembleDebug
 
@@ -103,14 +92,3 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: android/app/build/outputs/apk/debug/*.apk
-
-  pages:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
