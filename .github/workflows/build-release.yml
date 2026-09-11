@@ -53,6 +53,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags chahiye taaki versionCode tag se bane (v1.3.1 → 10301)
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -77,8 +79,9 @@ jobs:
 
       - name: Decode signing keystore (permanent key → in-place updates)
         run: |
-          echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > android/jee-planner.keystore
-          ls -la android/jee-planner.keystore
+          echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > android/app/jee-planner.keystore
+          ls -la android/app/jee-planner.keystore
+          keytool -list -keystore android/app/jee-planner.keystore -storepass "${{ secrets.KEYSTORE_PASSWORD }}" -alias "${{ secrets.KEY_ALIAS }}" 2>&1 | head -3
 
       - name: Build signed APK (stable signature — updates merge in-place)
         working-directory: android
@@ -89,6 +92,13 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           APP_VERSION_NAME: ${{ github.ref_name }}
         run: ./gradlew assembleRelease
+
+      - name: Verify APK is SIGNED (unsigned = install fail, gate it here)
+        working-directory: android
+        run: |
+          ls -la app/build/outputs/apk/release/
+          APKSIGNER=$(ls $ANDROID_HOME/build-tools/*/apksigner | head -1)
+          "$APKSIGNER" verify --print-certs app/build/outputs/apk/release/*.apk | head -5
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
