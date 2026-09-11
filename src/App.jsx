@@ -123,7 +123,7 @@ export default function App() {
         )}
 
         {/* Main content */}
-        <div className="flex-1 flex flex-col min-h-screen lg:ml-[var(--sidebar-width)]">
+        <div className="flex-1 flex flex-col min-w-0 min-h-screen lg:ml-[var(--sidebar-width)]">
           <Header />
 
           <main className="flex-1 px-4 pb-28 md:px-6 lg:px-8 xl:px-10 pt-4 max-w-[1600px] w-full mx-auto">

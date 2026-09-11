@@ -20,6 +20,7 @@ export default function LectureCard({ lecture, compact = false, showDate = false
       <div
         className={`
           group flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 cursor-pointer
+          hover:-translate-y-px hover:shadow-md active:scale-[0.99]
           ${isBacklog ? 'border-red-200 dark:border-red-800/40 bg-red-50/50 dark:bg-red-900/10' : ''}
           ${isCompleted
             ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800/30'

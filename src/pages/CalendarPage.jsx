@@ -74,17 +74,34 @@ export default function CalendarPage() {
   const selectedIsMissed = selectedDate ? missedSet.has(selectedDate) : false;
   const selectedIsSunday = selectedDate ? new Date(selectedDate).getDay() === 0 : false;
 
+  // Month stats for the header subtitle
+  const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+  const monthLectures = Object.entries(dayMap)
+    .filter(([d]) => d.startsWith(monthKey))
+    .flatMap(([, ls]) => ls);
+  const monthDone = monthLectures.filter(l => completions[l.id] === 'completed').length;
+
   return (
     <div className="animate-fadeIn space-y-6">
       {/* Month Navigation */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-          {MONTHS[month]} {year}
-        </h2>
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 flex-shrink-0">
+            <Calendar size={20} />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white truncate">
+              {MONTHS[month]} {year}
+            </h2>
+            <p className="text-[12px] text-gray-500 dark:text-gray-400">
+              {monthLectures.length} lectures • {monthDone} done
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
             onClick={() => setViewDate(new Date(year, month - 1))}
-            className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-600 dark:text-gray-400"
+            className="btn-icon tap-target"
             aria-label="Previous month"
           >
             <ChevronLeft size={18} />
@@ -97,7 +114,7 @@ export default function CalendarPage() {
           </button>
           <button
             onClick={() => setViewDate(new Date(year, month + 1))}
-            className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-600 dark:text-gray-400"
+            className="btn-icon tap-target"
             aria-label="Next month"
           >
             <ChevronRight size={18} />

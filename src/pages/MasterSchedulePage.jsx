@@ -73,15 +73,20 @@ export default function MasterSchedulePage() {
   return (
     <div className="animate-fadeIn space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Master Schedule</h2>
-          <p className="text-[12px] text-gray-500 dark:text-gray-400">
-            {filteredLectures.length} lectures
-            {activeFilterCount > 0 && ` (filtered from ${lectures.length})`}
-            {view === 'resolved' && backlogItems > 0 && (
-              <span className="text-red-500 font-medium"> • {backlogItems} backlog</span>
-            )}
-          </p>
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 flex-shrink-0">
+            <CalendarClock size={20} />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Master Schedule</h2>
+            <p className="text-[12px] text-gray-500 dark:text-gray-400">
+              {filteredLectures.length} lectures
+              {activeFilterCount > 0 && ` (filtered from ${lectures.length})`}
+              {view === 'resolved' && backlogItems > 0 && (
+                <span className="text-red-500 font-medium"> • {backlogItems} backlog</span>
+              )}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {/* View toggle */}
@@ -141,7 +146,7 @@ export default function MasterSchedulePage() {
           placeholder="Search by chapter, topic, faculty, lecture..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 bg-transparent text-[13px] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none"
+          className="flex-1 min-w-0 bg-transparent text-[13px] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none"
         />
         {searchQuery && (
           <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
@@ -190,11 +195,13 @@ export default function MasterSchedulePage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {sortedDates.map(date => (
-            <div key={date}>
+          {sortedDates.map((date, gi) => (
+            <div key={date} className="animate-fadeIn" style={{ animationDelay: `${Math.min(gi, 12) * 40}ms` }}>
               <div className="flex items-center gap-3 mb-2">
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border shadow-sm ${
-                  date < schedule.today && groupedByDate[date].some(l => l.isBacklog)
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border shadow-sm min-w-0 ${
+                  date === schedule.today
+                    ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-700/60 ring-1 ring-indigo-300 dark:ring-indigo-700'
+                    : date < schedule.today && groupedByDate[date].some(l => l.isBacklog)
                     ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800/40'
                     : 'bg-white dark:bg-[#1e1f32] border-gray-100 dark:border-white/5'
                 }`}>
