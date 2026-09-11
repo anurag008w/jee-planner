@@ -63,7 +63,7 @@ export default function SubjectsPage() {
           return (
             <div
               key={subject.name}
-              className="bg-white dark:bg-[#1e1f32] rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer"
+              className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer"
               onClick={() => subject.name === 'Chemistry' ? setPage('chemistry') : setPage('chapters')}
             >
               <div className={`bg-gradient-to-br ${subject.iconBg} p-5 text-white relative overflow-hidden`}>

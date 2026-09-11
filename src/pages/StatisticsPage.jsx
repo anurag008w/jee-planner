@@ -119,7 +119,7 @@ export default function StatisticsPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#1e1f32] rounded-2xl border border-gray-100 dark:border-white/5 p-5">
+      <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 p-5">
         <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <Zap size={16} className="text-amber-500" />
           Lectures by Subject
@@ -147,7 +147,7 @@ export default function StatisticsPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#1e1f32] rounded-2xl border border-gray-100 dark:border-white/5 p-5">
+      <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 p-5">
         <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <TrendingUp size={16} className="text-emerald-500" />
           Chemistry Branches
@@ -175,7 +175,7 @@ export default function StatisticsPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#1e1f32] rounded-2xl border border-gray-100 dark:border-white/5 p-5">
+      <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 p-5">
         <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <Clock size={16} className="text-purple-500" />
           Phase Distribution
@@ -197,7 +197,7 @@ export default function StatisticsPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#1e1f32] rounded-2xl border border-gray-100 dark:border-white/5 p-5">
+      <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 p-5">
         <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <CheckCircle2 size={16} className="text-blue-500" />
           Faculty Overview

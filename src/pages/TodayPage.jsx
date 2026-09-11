@@ -103,7 +103,7 @@ export default function TodayPage() {
             className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11.5px] font-medium border transition-all ${
               showSettings
                 ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-300'
-                : 'bg-white dark:bg-[#1e1f32] border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'
+                : 'bg-white dark:bg-[#1a1c2b] border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'
             }`}
           >
             <Settings2 size={13} />
@@ -127,7 +127,7 @@ export default function TodayPage() {
 
       {/* Schedule Settings panel */}
       {showSettings && (
-        <div className="bg-white dark:bg-[#1e1f32] rounded-2xl border border-gray-100 dark:border-white/5 p-4 animate-scaleIn space-y-3">
+        <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 p-4 animate-scaleIn space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <p className="text-[13px] font-semibold text-gray-800 dark:text-gray-100">Preview Date (testing)</p>
@@ -213,7 +213,7 @@ export default function TodayPage() {
                     className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border transition-colors ${
                       isOff
                         ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800/40'
-                        : 'bg-white dark:bg-[#1e1f32] border-gray-100 dark:border-white/10'
+                        : 'bg-white dark:bg-[#1a1c2b] border-gray-100 dark:border-white/10'
                     }`}
                   >
                     <div className="min-w-0">
@@ -261,7 +261,7 @@ export default function TodayPage() {
               {['Phase 1', 'Phase 2', 'Phase 3', 'Phase 4'].map((p) => {
                 const cur = settings.phaseRanges?.[p] || { start: '', end: '' };
                 return (
-                  <div key={p} className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-colors ${settings.phaseRanges?.[p] ? 'bg-indigo-50/60 dark:bg-indigo-900/10 border-indigo-200 dark:border-indigo-800/40' : 'bg-white dark:bg-[#1e1f32] border-gray-100 dark:border-white/10'}`}>
+                  <div key={p} className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-colors ${settings.phaseRanges?.[p] ? 'bg-indigo-50/60 dark:bg-indigo-900/10 border-indigo-200 dark:border-indigo-800/40' : 'bg-white dark:bg-[#1a1c2b] border-gray-100 dark:border-white/10'}`}>
                     <span className={`text-[11px] font-bold px-2 py-1 rounded-lg flex-shrink-0 ${p === 'Phase 1' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : p === 'Phase 2' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : p === 'Phase 3' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
                       {p.replace('Phase ', 'P')}
                     </span>
@@ -340,7 +340,7 @@ export default function TodayPage() {
       {/* OFF DAY → catch-up panel */}
       {isOffDay && (
         <div className="animate-fadeIn stagger-2">
-          <div className="bg-white dark:bg-[#1e1f32] rounded-2xl border border-gray-100 dark:border-white/5 p-5">
+          <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 p-5">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-2xl">{isSunday ? '🎉' : '🌴'}</span>
               <h3 className="text-[15px] font-bold text-gray-900 dark:text-white">
@@ -441,7 +441,7 @@ export default function TodayPage() {
                     ? 'bg-green-500 border-green-500 text-white'
                     : lecture.isBacklog
                       ? 'bg-red-500 border-red-500 text-white'
-                      : 'bg-white dark:bg-[#1e1f32] border-indigo-300 dark:border-indigo-600 text-indigo-600 dark:text-indigo-400'
+                      : 'bg-white dark:bg-[#1a1c2b] border-indigo-300 dark:border-indigo-600 text-indigo-600 dark:text-indigo-400'
                 }`}>
                   {lecture.slot}
                 </div>
@@ -469,7 +469,7 @@ export default function TodayPage() {
 
       {/* RED BACKLOG POOL */}
       {backlog.length > 0 && (
-        <div className="animate-fadeIn stagger-4 bg-white dark:bg-[#1e1f32] rounded-2xl border border-red-200 dark:border-red-900/30 overflow-hidden">
+        <div className="animate-fadeIn stagger-4 bg-white dark:bg-[#1a1c2b] rounded-2xl border border-red-200 dark:border-red-900/30 overflow-hidden">
           <div className="px-5 py-4 bg-red-50 dark:bg-red-900/10 border-b border-red-100 dark:border-red-800/30">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -530,7 +530,7 @@ export default function TodayPage() {
       )}
 
       {/* Progress card */}
-      <div className="animate-fadeIn stagger-6 bg-white dark:bg-[#1e1f32] rounded-2xl p-5 border border-gray-100 dark:border-white/5">
+      <div className="animate-fadeIn stagger-6 bg-white dark:bg-[#1a1c2b] rounded-2xl p-5 border border-gray-100 dark:border-white/5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white">Overall Progress</h3>
           <span className="text-[13px] font-bold text-indigo-600 dark:text-indigo-400">{overallPercent}%</span>

@@ -24,7 +24,7 @@ export default function LectureCard({ lecture, compact = false, showDate = false
           ${isBacklog ? 'border-red-200 dark:border-red-800/40 bg-red-50/50 dark:bg-red-900/10' : ''}
           ${isCompleted
             ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800/30'
-            : 'bg-white dark:bg-[#1e1f32] border-gray-100 dark:border-white/5 hover:border-gray-200 dark:hover:border-white/10 hover:shadow-sm'
+            : 'bg-white dark:bg-[#1a1c2b] border-gray-100 dark:border-white/5 hover:border-gray-200 dark:hover:border-white/10 hover:shadow-sm'
           }
         `}
         onClick={() => setSelectedLecture(lecture)}
@@ -100,7 +100,7 @@ export default function LectureCard({ lecture, compact = false, showDate = false
         group relative overflow-hidden rounded-2xl border transition-all duration-300 cursor-pointer
         ${isCompleted
           ? 'bg-gradient-to-br from-green-50 to-emerald-50/50 dark:from-green-900/10 dark:to-emerald-900/5 border-green-200/60 dark:border-green-800/30'
-          : 'bg-white dark:bg-[#1e1f32] border-gray-100 dark:border-white/5 hover:border-gray-200 dark:hover:border-white/10 hover:shadow-lg hover:shadow-gray-200/60 dark:hover:shadow-black/25 hover:-translate-y-0.5'
+          : 'bg-white dark:bg-[#1a1c2b] border-gray-100 dark:border-white/5 hover:border-gray-200 dark:hover:border-white/10 hover:shadow-lg hover:shadow-gray-200/60 dark:hover:shadow-black/25 hover:-translate-y-0.5'
         }
       `}
       onClick={() => setSelectedLecture(lecture)}

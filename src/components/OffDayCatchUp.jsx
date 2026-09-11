@@ -96,7 +96,7 @@ export default function OffDayCatchUp({ date, compact = false }) {
                 flex items-center gap-3 p-3 rounded-xl border transition-all duration-150 cursor-pointer select-none
                 ${isChecked
                   ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-700'
-                  : 'bg-white dark:bg-[#1e1f32] border-gray-100 dark:border-white/5 hover:border-gray-200 dark:hover:border-white/10'
+                  : 'bg-white dark:bg-[#1a1c2b] border-gray-100 dark:border-white/5 hover:border-gray-200 dark:hover:border-white/10'
                 }
               `}
             >

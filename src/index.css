@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Class-based dark mode (Tailwind v4 default is media-based — that breaks app toggles) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary: #6366f1;
   --color-primary-light: #818cf8;
@@ -19,16 +22,16 @@
   --color-phase4: #d946ef;
   --color-surface: #ffffff;
   --color-surface-hover: #f8fafc;
-  --color-surface-dark: #1e1f32;
-  --color-surface-dark-hover: #2a2a3c;
+  --color-surface-dark: #1a1c2b;
+  --color-surface-dark-hover: #232635;
   --color-bg: #f1f5f9;
-  --color-bg-dark: #0f0f1a;
+  --color-bg-dark: #0c0d18;
   --color-text: #1e293b;
   --color-text-secondary: #64748b;
-  --color-text-dark: #e2e8f0;
-  --color-text-secondary-dark: #94a3b8;
+  --color-text-dark: #e7e9f4;
+  --color-text-secondary-dark: #9aa1bd;
   --color-border: #e2e8f0;
-  --color-border-dark: #334155;
+  --color-border-dark: #2c2f40;
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 
   /* ─── DESIGN SYSTEM v2 tokens ─────────────────────────── */
@@ -85,6 +88,10 @@
   .dark body,
   .dark {
     @apply text-text-dark bg-bg-dark;
+    background-image:
+      radial-gradient(1200px 600px at 85% -5%, rgba(99, 102, 241, 0.12), transparent 60%),
+      radial-gradient(800px 500px at -10% 30%, rgba(139, 92, 246, 0.08), transparent 55%);
+    background-attachment: fixed;
   }
 }
 
@@ -157,7 +164,7 @@
 
 /* ─── Shared card + polish utilities ─────────────────────────────────── */
 .card-surface {
-  @apply bg-white dark:bg-[#1e1f32] border border-gray-100 dark:border-white/5;
+  @apply bg-white dark:bg-[#1a1c2b] border border-gray-100 dark:border-white/5;
 }
 .card-hover {
   @apply hover:border-gray-200 dark:hover:border-white/10 hover:shadow-md hover:shadow-gray-200/60 dark:hover:shadow-black/30;

@@ -173,7 +173,7 @@ export default function CalendarPage() {
       <div className="flex flex-col xl:flex-row gap-6">
         {/* Calendar Grid */}
         <div className="flex-1">
-          <div className="bg-white dark:bg-[#1e1f32] rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden">
+          <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden">
             <div className="grid grid-cols-7 border-b border-gray-100 dark:border-white/5">
               {DAYS.map(d => (
                 <div key={d} className={`py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider ${d === 'Sun' ? 'text-red-400' : 'text-gray-400 dark:text-gray-500'}`}>
@@ -274,7 +274,7 @@ export default function CalendarPage() {
         {/* Selected Date Panel */}
         <div className="xl:w-[400px] flex-shrink-0">
           {selectedDate ? (
-            <div className="bg-white dark:bg-[#1e1f32] rounded-2xl border border-gray-100 dark:border-white/5 p-5 animate-scaleIn">
+            <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 p-5 animate-scaleIn">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-[15px] font-bold text-gray-900 dark:text-white">
@@ -361,7 +361,7 @@ export default function CalendarPage() {
               )}
             </div>
           ) : (
-            <div className="bg-white dark:bg-[#1e1f32] rounded-2xl border border-gray-100 dark:border-white/5 p-5 text-center">
+            <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 p-5 text-center">
               <Calendar size={32} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
               <p className="text-[13px] text-gray-400 dark:text-gray-500">
                 Click any date to see details

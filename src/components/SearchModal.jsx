@@ -44,7 +44,7 @@ export default function SearchModal() {
         role="dialog"
         aria-modal="true"
         aria-label="Search lectures"
-        className="relative w-full max-w-lg mx-4 bg-white dark:bg-[#1e1f32] rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden animate-scaleIn"
+        className="relative w-full max-w-lg mx-4 bg-white dark:bg-[#1a1c2b] rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden animate-scaleIn"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-white/5">

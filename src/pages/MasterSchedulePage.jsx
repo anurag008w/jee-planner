@@ -95,7 +95,7 @@ export default function MasterSchedulePage() {
               onClick={() => setView('resolved')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all ${
                 view === 'resolved'
-                  ? 'bg-white dark:bg-[#1e1f32] text-indigo-600 dark:text-indigo-400 shadow-sm'
+                  ? 'bg-white dark:bg-[#1a1c2b] text-indigo-600 dark:text-indigo-400 shadow-sm'
                   : 'text-gray-500 dark:text-gray-400'
               }`}
             >
@@ -106,7 +106,7 @@ export default function MasterSchedulePage() {
               onClick={() => setView('original')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all ${
                 view === 'original'
-                  ? 'bg-white dark:bg-[#1e1f32] text-indigo-600 dark:text-indigo-400 shadow-sm'
+                  ? 'bg-white dark:bg-[#1a1c2b] text-indigo-600 dark:text-indigo-400 shadow-sm'
                   : 'text-gray-500 dark:text-gray-400'
               }`}
             >
@@ -120,7 +120,7 @@ export default function MasterSchedulePage() {
             className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[12.5px] font-medium border transition-all ${
               showFilters || activeFilterCount > 0
                 ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300'
-                : 'bg-white dark:bg-[#1e1f32] border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'
+                : 'bg-white dark:bg-[#1a1c2b] border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'
             }`}
           >
             <Filter size={14} />
@@ -139,7 +139,7 @@ export default function MasterSchedulePage() {
         </div>
       </div>
 
-      <div className="flex-1 flex items-center gap-2 px-3 py-2.5 bg-white dark:bg-[#1e1f32] rounded-xl border border-gray-200 dark:border-white/10 focus-within:border-indigo-300 dark:focus-within:border-indigo-600 transition-colors">
+      <div className="flex-1 flex items-center gap-2 px-3 py-2.5 bg-white dark:bg-[#1a1c2b] rounded-xl border border-gray-200 dark:border-white/10 focus-within:border-indigo-300 dark:focus-within:border-indigo-600 transition-colors">
         <Search size={16} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
         <input
           type="text"
@@ -156,7 +156,7 @@ export default function MasterSchedulePage() {
       </div>
 
       {showFilters && (
-        <div className="bg-white dark:bg-[#1e1f32] rounded-2xl border border-gray-100 dark:border-white/5 p-4 animate-scaleIn">
+        <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 p-4 animate-scaleIn">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             <FilterSelect label="Phase" value={filters.phase} onChange={(v) => setFilters({ phase: v })} options={uniquePhases.map(p => ({ value: p, label: p }))} />
             <FilterSelect label="Subject" value={filters.subject} onChange={(v) => setFilters({ subject: v, chemistryBranch: '' })} options={uniqueSubjects.map(s => ({ value: s, label: s }))} />
@@ -180,7 +180,7 @@ export default function MasterSchedulePage() {
       )}
 
       {sortedDates.length === 0 ? (
-        <div className="bg-white dark:bg-[#1e1f32] rounded-2xl border border-dashed border-gray-200 dark:border-white/10 p-12 text-center animate-fadeIn">
+        <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-dashed border-gray-200 dark:border-white/10 p-12 text-center animate-fadeIn">
           <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gray-50 dark:bg-white/5 flex items-center justify-center">
             <Inbox size={26} className="text-gray-400 dark:text-gray-500" />
           </div>
@@ -203,7 +203,7 @@ export default function MasterSchedulePage() {
                     ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-700/60 ring-1 ring-indigo-300 dark:ring-indigo-700'
                     : date < schedule.today && groupedByDate[date].some(l => l.isBacklog)
                     ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800/40'
-                    : 'bg-white dark:bg-[#1e1f32] border-gray-100 dark:border-white/5'
+                    : 'bg-white dark:bg-[#1a1c2b] border-gray-100 dark:border-white/5'
                 }`}>
                   <span className="text-[13px] font-bold text-gray-900 dark:text-white">{formatDate(date)}</span>
                   <span className="text-[11px] text-gray-400 dark:text-gray-500 font-medium">

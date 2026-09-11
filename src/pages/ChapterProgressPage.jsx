@@ -127,7 +127,7 @@ export default function ChapterProgressPage() {
         <span className="px-2.5 py-1 rounded-md bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">ONE SHOT + PYQ · {planSummary.pyqLec} L</span>
         <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">koi chapter full ki jagah one-shot se bhi ho sakta hai — strategy pehle se set hai</span>
         <span className="ml-auto flex items-center gap-1.5">
-          <span className={`px-2.5 py-1 rounded-md border ${Object.keys(settings.chapterPhases || {}).length ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-300' : 'bg-white dark:bg-[#1e1f32] border-gray-100 dark:border-white/10 text-gray-400 dark:text-gray-500'}`}>
+          <span className={`px-2.5 py-1 rounded-md border ${Object.keys(settings.chapterPhases || {}).length ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-300' : 'bg-white dark:bg-[#1a1c2b] border-gray-100 dark:border-white/10 text-gray-400 dark:text-gray-500'}`}>
             Phase overrides: {Object.keys(settings.chapterPhases || {}).length}
           </span>
           {Object.keys(settings.chapterPhases || {}).length > 0 && (
@@ -141,7 +141,7 @@ export default function ChapterProgressPage() {
         </span>
       </div>
 
-      <div className="bg-white dark:bg-[#1e1f32] rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden">
+      <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden">
         <button
           onClick={() => setFoundationOpen(o => !o)}
           className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
@@ -223,7 +223,7 @@ export default function ChapterProgressPage() {
             className={`px-3 py-1.5 rounded-lg text-[11.5px] font-medium capitalize transition-all flex items-center ${
               sortBy === f
                 ? 'bg-indigo-100 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300'
-                : 'bg-white dark:bg-[#1e1f32] text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5'
+                : 'bg-white dark:bg-[#1a1c2b] text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5'
             }`}
           >
             {f === 'current' ? 'Current First' : f}
@@ -236,7 +236,7 @@ export default function ChapterProgressPage() {
             value={filterStrategy}
             onChange={(e) => setFilterStrategy(e.target.value)}
             aria-label="Filter by strategy"
-            className="px-3 py-1.5 rounded-lg text-[11.5px] font-medium bg-white dark:bg-[#1e1f32] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-white/10 outline-none cursor-pointer"
+            className="px-3 py-1.5 rounded-lg text-[11.5px] font-medium bg-white dark:bg-[#1a1c2b] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-white/10 outline-none cursor-pointer"
           >
             {STRATEGY_FILTERS.map(s => (
               <option key={s} value={s}>{s === 'All' ? 'All Strategies' : s}</option>
@@ -246,7 +246,7 @@ export default function ChapterProgressPage() {
             value={filterSubject}
             onChange={(e) => setFilterSubject(e.target.value)}
             aria-label="Filter by subject"
-            className="px-3 py-1.5 rounded-lg text-[11.5px] font-medium bg-white dark:bg-[#1e1f32] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-white/10 outline-none cursor-pointer"
+            className="px-3 py-1.5 rounded-lg text-[11.5px] font-medium bg-white dark:bg-[#1a1c2b] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-white/10 outline-none cursor-pointer"
           >
             <option value="All">All Subjects</option>
             <option value="Physics">Physics</option>
@@ -258,7 +258,7 @@ export default function ChapterProgressPage() {
 
       <div className="space-y-2">
         {sorted.length === 0 && (
-          <div className="bg-white dark:bg-[#1e1f32] rounded-2xl border border-dashed border-gray-200 dark:border-white/10 p-10 text-center animate-fadeIn">
+          <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-dashed border-gray-200 dark:border-white/10 p-10 text-center animate-fadeIn">
             <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gray-50 dark:bg-white/5 flex items-center justify-center">
               <Inbox size={26} className="text-gray-400 dark:text-gray-500" />
             </div>
@@ -281,7 +281,7 @@ export default function ChapterProgressPage() {
           return (
             <div
               key={chapter.chapter}
-              className={`bg-white dark:bg-[#1e1f32] rounded-xl border p-4 transition-all duration-200 ${
+              className={`bg-white dark:bg-[#1a1c2b] rounded-xl border p-4 transition-all duration-200 ${
                 chapter.isAllDone
                   ? 'border-green-200/60 dark:border-green-800/20'
                   : 'border-gray-100 dark:border-white/5 hover:border-gray-200 dark:hover:border-white/10 hover:shadow-sm'

@@ -82,7 +82,7 @@ export default function ChemistryPage() {
             className={`px-4 py-2 rounded-xl text-[12.5px] font-medium whitespace-nowrap transition-all ${
               activeTab === tab
                 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 shadow-sm'
-                : 'bg-white dark:bg-[#1e1f32] text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 border border-gray-100 dark:border-white/5'
+                : 'bg-white dark:bg-[#1a1c2b] text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 border border-gray-100 dark:border-white/5'
             }`}
           >
             {tab}
@@ -92,7 +92,7 @@ export default function ChemistryPage() {
 
       <div className="relative">
         {filteredChapters.length === 0 && (
-          <div className="bg-white dark:bg-[#1e1f32] rounded-2xl border border-dashed border-gray-200 dark:border-white/10 p-10 text-center animate-fadeIn">
+          <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-dashed border-gray-200 dark:border-white/10 p-10 text-center animate-fadeIn">
             <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gray-50 dark:bg-white/5 flex items-center justify-center">
               <FlaskConical size={26} className="text-gray-400 dark:text-gray-500" />
             </div>
@@ -123,7 +123,7 @@ export default function ChemistryPage() {
                     ? 'bg-green-500 border-green-500 text-white'
                     : isSelected
                     ? 'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-500 text-emerald-600 dark:text-emerald-400'
-                    : 'bg-white dark:bg-[#1e1f32] border-gray-200 dark:border-white/10 text-gray-400 dark:text-gray-500 group-hover:border-emerald-300'
+                    : 'bg-white dark:bg-[#1a1c2b] border-gray-200 dark:border-white/10 text-gray-400 dark:text-gray-500 group-hover:border-emerald-300'
                 }`}>
                   {isAllDone ? <CheckCircle2 size={18} /> : <span className="text-[11px] font-bold">{idx + 1}</span>}
                 </div>
@@ -131,7 +131,7 @@ export default function ChemistryPage() {
                 <div className={`flex-1 rounded-xl border p-4 transition-all duration-200 ${
                   isSelected
                     ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800/30 shadow-sm'
-                    : 'bg-white dark:bg-[#1e1f32] border-gray-100 dark:border-white/5 hover:border-gray-200 dark:hover:border-white/10 hover:shadow-sm'
+                    : 'bg-white dark:bg-[#1a1c2b] border-gray-100 dark:border-white/5 hover:border-gray-200 dark:hover:border-white/10 hover:shadow-sm'
                 }`}>
                   <div className="flex items-start justify-between mb-2">
                     <div>
