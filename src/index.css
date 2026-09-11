@@ -19,7 +19,7 @@
   --color-phase4: #d946ef;
   --color-surface: #ffffff;
   --color-surface-hover: #f8fafc;
-  --color-surface-dark: #1e1e2e;
+  --color-surface-dark: #1e1f32;
   --color-surface-dark-hover: #2a2a3c;
   --color-bg: #f1f5f9;
   --color-bg-dark: #0f0f1a;
@@ -30,6 +30,20 @@
   --color-border: #e2e8f0;
   --color-border-dark: #334155;
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* ─── DESIGN SYSTEM v2 tokens ─────────────────────────── */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.03);
+  --shadow-card-hover: 0 2px 4px rgba(16, 24, 40, 0.05), 0 8px 24px -8px rgba(99, 102, 241, 0.12);
+  --shadow-pop: 0 12px 32px -8px rgba(16, 24, 40, 0.18);
+  --surface-1-light: #ffffff;
+  --surface-1-dark: #16181f;
+  --surface-2-light: #f8fafc;
+  --surface-2-dark: #1f2130;
+  --line-light: #ececf1;
+  --line-dark: rgba(255, 255, 255, 0.07);
 }
 
 @layer base {
@@ -181,3 +195,121 @@
 .stagger-3 { animation-delay: 0.15s; }
 .stagger-4 { animation-delay: 0.2s; }
 .stagger-5 { animation-delay: 0.25s; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DESIGN SYSTEM v2 — ONE cohesive premium language across every page.
+   Refines the shared classes that pages already use, so the whole app
+   upgrades at once, plus adds the unified button/input/title vocabulary.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Consistent radius scale — never mix 8/10/14/20 haphazardly anymore */
+  --radius-xs: 8px;
+  --radius-sm: 10px;
+  --radius: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  /* Soft elevation — premium apps use nearly-invisible shadows, not hard boxes */
+  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px -4px rgba(15, 23, 42, 0.06);
+  --shadow-lift: 0 1px 2px rgba(15, 23, 42, 0.05), 0 12px 28px -12px rgba(15, 23, 42, 0.14);
+  --shadow-pop: 0 8px 30px -6px rgba(79, 70, 229, 0.35);
+  --ring-focus: 0 0 0 2px var(--color-primary);
+}
+
+/* ── Cards — one surface, one radius, premium soft edge ────────────────── */
+.card-surface {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+}
+.dark .card-surface {
+  background: var(--color-surface-dark);
+  border-color: var(--color-border-dark);
+}
+.card-surface.card-surface-interactive {
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.card-surface.card-surface-interactive:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lift);
+}
+@media (max-width: 640px) {
+  .card-surface.card-surface-interactive:hover { transform: none; }
+}
+
+/* ── Buttons — one family, three roles + icons ─────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-weight: 600; border-radius: var(--radius-sm);
+  transition: all .15s ease; cursor: pointer; user-select: none;
+  white-space: nowrap; flex-shrink: 0;
+}
+.btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.btn:active { transform: translateY(0) scale(.98); }
+
+/* Primary — the ONE call to action */
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: #fff;
+  box-shadow: var(--shadow-pop);
+}
+.btn-primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
+
+/* Secondary — elevated surface w/ subtle border (disabled-ish not needed) */
+.btn-secondary {
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+.dark .btn-secondary { background: rgba(255,255,255,.04); border-color: var(--color-border-dark); color: var(--color-text-dark); }
+.btn-secondary:hover { border-color: var(--color-primary); color: var(--color-text); }
+
+/* Ghost — tertiary, quiet text button */
+.btn-ghost { color: var(--color-text-secondary); background: transparent; }
+.dark .btn-ghost { color: var(--color-text-secondary-dark); }
+.btn-ghost:hover { color: var(--color-text); background: var(--color-surface-hover); }
+.dark .btn-ghost:hover { color: var(--color-text-dark); background: rgba(255,255,255,.05); }
+
+/* Icon button — square, 40px min tap target; warn on mobile */
+.btn-icon { display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:var(--radius-sm); color:var(--color-text-secondary); transition: all .15s ease; flex-shrink:0; }
+.dark .btn-icon { color: var(--color-text-secondary-dark); }
+.btn-icon:hover { background: var(--color-surface-hover); color: var(--color-text); }
+.dark .btn-icon:hover { background: rgba(255,255,255,.05); color: var(--color-text-dark); }
+.btn-icon:active { transform: scale(.94); }
+
+@media (max-width: 640px) { .btn-icon { width:44px; height:44px; } }
+
+/* ── Pills / tags — one consistent, low-noise chip ─────────────────────── */
+.pill { display:inline-flex; align-items:center; gap:5px; padding: 3px 9px; font-size: 10.5px; font-weight:600; border-radius: 9999px; white-space:nowrap; }
+.pill-lg { padding: 5px 12px; font-size: 11.5px; }
+
+/* ── Inputs — unified field system (16px prevents iOS auto-zoom) ───────── */
+.field {
+  width: 100%; min-height: 42px; padding: 10px 14px;
+  font-size: 13px; color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: border-color .15s ease, box-shadow .15s ease;
+  outline: none;
+}
+.dark .field { background: var(--color-surface-dark); border-color: var(--color-border-dark); color: var(--color-text-dark); }
+.field::placeholder { color: var(--color-text-secondary); }
+.field:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
+
+/* ── Page / section titles — strong typography hierarchy ───────────────── */
+.page-title { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-text); }
+.dark .page-title { color: var(--color-text-dark); }
+.page-title + .page-sub { margin-top: 4px; }
+.page-sub { font-size: 13px; color: var(--color-text-secondary); }
+.dark .page-sub { color: var(--color-text-secondary-dark); }
+
+.section-title { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-secondary); }
+.dark .section-title { color: var(--color-text-secondary-dark); }
+
+/* ── Scrollbar polish (works with .scrollbar-thin) ─────────────────────── */
+@media (min-width: 768px) {
+  .card-surface::-webkit-scrollbar { width: 6px; height: 6px; }
+  .card-surface::-webkit-scrollbar-thumb { background: rgba(148,163,184,.4); border-radius: 3px; }
+}
