@@ -1,5 +1,5 @@
-// sw.js — JEE Planner service worker v3 (silent in-place auto-update, no reinstall).
-const CACHE = 'jee-planner-v3';
+// sw.js — JEE Planner service worker v4 (silent in-place auto-update, no reinstall).
+const CACHE = 'jee-planner-v4';
 const ASSET_RE = /\/assets\/.+\.(js|css|woff2?|png|svg|webp|avif|json)$/;
 const NAV_RE = /^\/(index\.html)?(\?.*)?$/;
 
