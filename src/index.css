@@ -1,0 +1,183 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #6366f1;
+  --color-primary-light: #818cf8;
+  --color-primary-dark: #4f46e5;
+  --color-physics: #3b82f6;
+  --color-physics-light: #93c5fd;
+  --color-math: #f59e0b;
+  --color-math-light: #fcd34d;
+  --color-chemistry: #10b981;
+  --color-chemistry-light: #6ee7b7;
+  --color-pchem: #06b6d4;
+  --color-ochem: #8b5cf6;
+  --color-ichem: #ec4899;
+  --color-phase1: #6366f1;
+  --color-phase2: #8b5cf6;
+  --color-phase3: #a855f7;
+  --color-phase4: #d946ef;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f8fafc;
+  --color-surface-dark: #1e1e2e;
+  --color-surface-dark-hover: #2a2a3c;
+  --color-bg: #f1f5f9;
+  --color-bg-dark: #0f0f1a;
+  --color-text: #1e293b;
+  --color-text-secondary: #64748b;
+  --color-text-dark: #e2e8f0;
+  --color-text-secondary-dark: #94a3b8;
+  --color-border: #e2e8f0;
+  --color-border-dark: #334155;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  :root {
+    --sidebar-width: 260px;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply font-sans antialiased;
+    -webkit-tap-highlight-color: transparent;
+    /* Prevent rubber-band/overscroll jank on mobile */
+    overscroll-behavior-y: none;
+  }
+
+  /* iOS zoom fix: inputs <16px auto-zoom on focus — only on touch screens */
+  @media (hover: none) and (pointer: coarse) {
+    input, select, textarea {
+      font-size: 16px;
+    }
+  }
+
+  /* Accessible, consistent focus for keyboard users */
+  *:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  button:focus:not(:focus-visible),
+  input:focus:not(:focus-visible),
+  select:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  .dark body,
+  .dark {
+    @apply text-text-dark bg-bg-dark;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+  .dark .scrollbar-thin {
+    scrollbar-color: #475569 transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #475569;
+  }
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  /* Comfortable tap target on touch devices */
+  @media (hover: none) and (pointer: coarse) {
+    .tap-target {
+      min-width: 44px;
+      min-height: 44px;
+    }
+  }
+  /* Prevent horizontal scroll drift on phones */
+  .no-hscroll {
+    overflow-x: hidden;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes progressFill {
+  from { width: 0; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
+}
+
+.animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
+.animate-slideIn { animation: slideIn 0.3s ease-out forwards; }
+.animate-scaleIn { animation: scaleIn 0.3s ease-out forwards; }
+.animate-progressFill { animation: progressFill 0.8s ease-out forwards; }
+.animate-pulseGlow { animation: pulseGlow 2s infinite; }
+
+/* ─── Shared card + polish utilities ─────────────────────────────────── */
+.card-surface {
+  @apply bg-white dark:bg-[#1e1f32] border border-gray-100 dark:border-white/5;
+}
+.card-hover {
+  @apply hover:border-gray-200 dark:hover:border-white/10 hover:shadow-md hover:shadow-gray-200/60 dark:hover:shadow-black/30;
+}
+.btn-icon {
+  @apply p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-200;
+}
+.badge-pill {
+  @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-semibold;
+}
+.gradient-ring {
+  @apply bg-gradient-to-br from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/25;
+}
+
+/* Thin 2px progress bar, shared look */
+.progress-track {
+  @apply bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden;
+}
+.progress-fill {
+  @apply h-full rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-400 transition-all duration-700;
+}
+
+/* Subtle shimmer for hero accents */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 3.5s linear infinite;
+}
+
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }

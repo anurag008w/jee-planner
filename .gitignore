@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Logs
+*.log
+launcher.log
+
+# Personal data — kabhi push nahi hoga
+data/
+*.zip
+
+# OS
+.DS_Store
+Thumbs.db
