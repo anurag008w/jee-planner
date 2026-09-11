@@ -1,11 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import useStore from './store/useStore';
-import { apiBase } from './config';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import MobileNav from './components/MobileNav';
 import SearchModal from './components/SearchModal';
 import LectureModal from './components/LectureModal';
+import SyncModal from './components/SyncModal';
 import TodayPage from './pages/TodayPage';
 import CalendarPage from './pages/CalendarPage';
 import MasterSchedulePage from './pages/MasterSchedulePage';
@@ -25,84 +25,35 @@ const pages = {
 };
 
 // ---------------------------------------------------------------------------
-// Server-side (file-based) persistence:
-//  - on boot: pull data from /home/anurag/jee-planner/data/planner-data.json
-//  - on every change: debounced POST /api/save so the disk file stays in sync
-// localStorage (zustand persist) stays as the instant layer; the file is the safe copy.
+// Sync policy: MANUAL ONLY (koi auto-sync nahi).
+//  - localStorage (zustand persist) = instant layer, har device pe alag.
+//  - GitHub repo (jee-planner-data) = shared truth; user khud Pull/Push karta hai.
+//  - Token device ke localStorage me hi rehta hai, GitHub pe kabhi nahi jaata.
 // ---------------------------------------------------------------------------
-let saveTimer = null;
-
-function pushToServer(state) {
-  const data = {
-    app: 'jee-planner',
-    savedAt: new Date().toISOString(),
-    completions: state.completions,
-    settings: state.settings,
-    theme: state.theme,
-  };
-  fetch(apiBase() + '/api/save', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  }).catch(() => { /* offline / file:// — localStorage still holds data */ });
-}
 
 export default function App() {
-  const { theme, searchOpen, selectedLecture, sidebarOpen, currentPage } = useStore();
+  const { theme, searchOpen, selectedLecture, sidebarOpen, currentPage, syncOpen } = useStore();
+  const promptedRef = useRef(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
 
   useEffect(() => {
-    let mounted = true;
-    // Boot: pull the disk copy (master) and merge with local storage.
-    fetch(apiBase() + '/api/load')
-      .then((r) => r.json())
-      .then((remote) => {
-        if (!mounted || !remote || remote.app !== 'jee-planner') return;
-        const s = useStore.getState();
-        const remoteComps = remote.completions && typeof remote.completions === 'object' ? remote.completions : {};
-        const hasRemote = Object.keys(remoteComps).length > 0 || (Array.isArray(remote.settings?.offDays) && remote.settings.offDays.length > 0);
-        // completions: union (kabhi progress mat kaho)
-        const mergedCompletions = {};
-        new Set([...Object.keys(remoteComps), ...Object.keys(s.completions)]).forEach((id) => {
-          const a = remoteComps[id] === 'completed';
-          const b = s.completions[id] === 'completed';
-          mergedCompletions[id] = a || b ? 'completed' : 'not_started';
-        });
-        useStore.getState().importBackup({
-          app: 'jee-planner',
-          completions: mergedCompletions,
-          settings: {
-            offDays: hasRemote && Array.isArray(remote.settings?.offDays) ? remote.settings.offDays : s.settings.offDays,
-            previewDate: hasRemote ? (remote.settings?.previewDate ?? s.settings.previewDate) : s.settings.previewDate,
-            autoShift: hasRemote ? (remote.settings?.autoShift !== false) : s.settings.autoShift,
-            phaseRanges: hasRemote && remote.settings?.phaseRanges ? remote.settings.phaseRanges : s.settings.phaseRanges,
-            chapterPhases: hasRemote && remote.settings?.chapterPhases ? remote.settings.chapterPhases : s.settings.chapterPhases,
-          },
-          theme: hasRemote && remote.theme ? remote.theme : s.theme,
-        });
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (mounted) pushToServer(useStore.getState());
-      });
-    return () => { mounted = false; };
-  }, []);
-
-  // Debounced sync on every store change.
-  useEffect(() => {
-    const unsub = useStore.subscribe((state) => {
-      clearTimeout(saveTimer);
-      saveTimer = setTimeout(() => pushToServer(state), 600);
-    });
-    return () => { unsub(); clearTimeout(saveTimer); };
-  }, []);
-
-  useEffect(() => {
     // Ensure the resolved schedule matches the hydrated completions/settings
     useStore.getState().recompute();
+  }, []);
+
+  useEffect(() => {
+    // App kholte hi (har baar): agar GitHub sync configured hai to Sync kholo,
+    // taaki user Pull/Push kar sake. Koi auto pull/push nahi — sirf prompt.
+    if (promptedRef.current) return;
+    promptedRef.current = true;
+    const s = useStore.getState();
+    if (s.sync?.token) {
+      const t = setTimeout(() => useStore.getState().setSyncOpen(true), 600);
+      return () => clearTimeout(t);
+    }
   }, []);
 
   const PageComponent = pages[currentPage] || TodayPage;
@@ -141,6 +92,9 @@ export default function App() {
 
       {/* Lecture Detail Modal */}
       {selectedLecture && <LectureModal />}
+
+      {/* GitHub Sync (manual — har tab se, har launch pe prompt) */}
+      {syncOpen && <SyncModal />}
     </div>
   );
 }

@@ -46,6 +46,31 @@ const useStore = create(
         selectedDate: null,
         selectedLecture: null,
         sidebarOpen: false,
+        syncOpen: false,
+
+        // ----- GitHub manual sync -----
+        // token device ke localStorage me hi rehta hai (mobile ka mobile me,
+        // laptop ka laptop me) — GitHub pe push hone wale payload me kabhi nahi jaata.
+        sync: {
+          token: '',
+          owner: 'anurag008w',
+          repo: 'jee-planner-data',
+          branch: 'main',
+          path: 'planner-data.json',
+          lastRemoteSha: '',
+          lastSyncedAt: '',
+          lastSnapshot: '',
+        },
+        setSyncOpen: (open) => set({ syncOpen: open }),
+        setSyncConfig: (patch) => set((s) => ({ sync: { ...s.sync, ...patch } })),
+        markSynced: ({ sha, snapshot }) => set((s) => ({
+          sync: {
+            ...s.sync,
+            lastRemoteSha: sha || s.sync.lastRemoteSha,
+            lastSyncedAt: new Date().toISOString(),
+            lastSnapshot: snapshot || s.sync.lastSnapshot,
+          },
+        })),
 
         filters: {
           date: '', phase: '', subject: '', chemistryBranch: '',
@@ -205,6 +230,7 @@ const useStore = create(
         completions: state.completions,
         theme: state.theme,
         currentPage: state.currentPage,
+        sync: state.sync,
         settings: {
           offDays: state.settings.offDays,
           previewDate: state.settings.previewDate,
@@ -233,6 +259,12 @@ const useStore = create(
           theme: base.theme || 'light',
           currentPage: base.currentPage || 'today',
           settings: mergedSettings,
+          sync: {
+            token: '', owner: 'anurag008w', repo: 'jee-planner-data',
+            branch: 'main', path: 'planner-data.json',
+            lastRemoteSha: '', lastSyncedAt: '', lastSnapshot: '',
+            ...(base.sync || {}),
+          },
         };
       },
       onRehydrateStorage: () => (state) => {

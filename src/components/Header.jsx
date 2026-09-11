@@ -1,10 +1,10 @@
 import useStore from '../store/useStore';
-import { Search, Menu, Moon, Sun, X } from 'lucide-react';
+import { Search, Menu, Moon, Sun, X, ArrowDownUp } from 'lucide-react';
 import { getToday, formatDateFull } from '../utils/helpers';
 import ProgressBar from './ProgressBar';
 
 export default function Header() {
-  const { theme, toggleTheme, setSearchOpen, setSidebarOpen, sidebarOpen, currentPage, lectures, completions } = useStore();
+  const { theme, toggleTheme, setSearchOpen, setSidebarOpen, sidebarOpen, currentPage, lectures, completions, sync } = useStore();
   const today = getToday();
   const todayLectures = lectures.filter(l => l.newStudyDate === today);
   const todayCompleted = todayLectures.filter(l => completions[l.id] === 'completed').length;
@@ -53,6 +53,18 @@ export default function Header() {
               {totalCompleted}/{totalLectures}
             </span>
           </div>
+
+          <button
+            onClick={() => useStore.getState().setSyncOpen(true)}
+            aria-label="GitHub sync (manual pull/push)"
+            title="GitHub Sync"
+            className="btn-icon tap-target relative"
+          >
+            <ArrowDownUp size={18} />
+            {sync?.token ? (
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            ) : null}
+          </button>
 
           <button
             onClick={() => setSearchOpen(true)}
