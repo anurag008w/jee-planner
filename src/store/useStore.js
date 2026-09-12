@@ -94,27 +94,40 @@ const useStore = create(
         }),
 
         // ----- schedule engine -----
-        recompute: () => {
+        // freezeToday = true sirf completion actions se aata hai → aaj ke plan ko
+        // FREEZE rakho (complete karne par naya lecture kabhi nahi aata, list ghatti
+        // hai). Settings/offday/phase changes se fresh recompute hota hai.
+        recompute: (opts = {}) => {
           const s = get();
           const today = s.settings.previewDate || getToday();
           const schedule = computeSchedule(s.completions, s.settings);
+          if (opts.freezeToday) {
+            const prevPlan = (s.schedule && s.schedule.today === today && s.schedule.dayMap && s.schedule.dayMap[today]) || [];
+            if (prevPlan.length > 0) {
+              const frozen = prevPlan.filter(l => s.completions[l.id] !== 'completed');
+              schedule.dayMap[today] = frozen;
+              frozen.forEach(l => {
+                schedule.resolved[l.id] = { resolvedDate: today, isBacklog: l.newStudyDate < today };
+              });
+            }
+          }
           set({ schedule: { ...schedule, today } });
         },
 
         // ----- completion actions -----
         markComplete: (id) => {
           set((s) => ({ completions: { ...s.completions, [id]: 'completed' } }));
-          get().recompute();
+          get().recompute({ freezeToday: true });
         },
         markIncomplete: (id) => {
           set((s) => ({ completions: { ...s.completions, [id]: 'not_started' } }));
-          get().recompute();
+          get().recompute({ freezeToday: true });
         },
         toggleComplete: (id) => {
           set((s) => ({
             completions: { ...s.completions, [id]: s.completions[id] === 'completed' ? 'not_started' : 'completed' }
           }));
-          get().recompute();
+          get().recompute({ freezeToday: true });
         },
         completeMany: (ids) => {
           set((s) => {
@@ -122,7 +135,7 @@ const useStore = create(
             ids.forEach((id) => { completions[id] = 'completed'; });
             return { completions };
           });
-          get().recompute();
+          get().recompute({ freezeToday: true });
         },
 
         // ----- settings -----

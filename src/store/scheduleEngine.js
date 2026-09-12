@@ -28,6 +28,15 @@
 //     remaining pool by the horizon (ceil(remainingUnits / studyDaysLeft)),
 //     so light days stay light and heavy days catch up only when needed.
 //  7. TODAY never pulls future lectures — ticking today's plan is stable.
+//     Jab tak backlog pool me baaki hai, aaj SIRF backlog dikhta hai; aaj ke
+//     apne lectures (newStudyDate === today) tabhi aate hain jab backlog khaali
+//     ho — "uss din ke lectures backlog khatam hone ke baad".
+//  8. COUNT cap per DISPLAYED phase (user): ek din me Phase X ke lectures us
+//     phase ki daily capacity se zyada kabhi nahi — Phase 1 ≤ 2, Phase 2 ≤ 3,
+//     Phase 3 ≤ 4, Phase 4 ≤ 5 (counting every lecture card the user sees).
+//     Ye phase us lecture ka hai (card pill), day ki original date ki phase
+//     se alag ho sakti hai — backlog 4 Phase-1 lectures ek "Phase 3 day" par
+//     nahi aate. One-shot (0.5) lectures se bhi din count me nahi fat-ta.
 // Data integrity: original dates/text/faculty are NEVER mutated; the engine
 // only computes a `resolvedDate` layer on top.
 // ---------------------------------------------------------------------------
@@ -236,29 +245,45 @@ export function computeResolvedSchedule(args) {
 
     // TODAY is special: we NEVER pull future lectures into it. Completing one of
     // today's lectures must NOT refill today from tomorrow (stability while ticking).
+    // Aur jab tak backlog pool me baaki hai, aaj SIRF backlog dikhta hai — aaj ke
+    // apne lectures (newStudyDate === today) backlog khatam hone ke baad hi aayenge.
     const isToday = date === today;
-    const selectable = isToday
-      ? pool.filter(l => l.newStudyDate <= today) // backlog + aaj ke apne lectures
-      : pool;
+    let selectable;
+    if (isToday) {
+      const backlogLeft = pool.filter(l => l.newStudyDate < today);
+      selectable = backlogLeft.length > 0
+        ? backlogLeft                                 // backlog baaki → sirf backlog
+        : pool.filter(l => l.newStudyDate <= today);  // backlog khaali → aaj ke apne
+    } else {
+      selectable = pool;
+    }
     if (selectable.length === 0) continue; // today: koi backlog/own nahi → aaj khali
 
     // ENGINE MODE — backlog / pulled-forward / spare-capacity day.
     const selected = [];
     const selectedSet = new Set(); // IDs already picked TODAY — kabhi duplicate mat uthao
     const dayCounts = {}; // subject -> number of lectures already picked TODAY (max 2)
+    const phaseCounts = {}; // displayed phase -> lectures already picked TODAY (count cap)
     const distinctTarget = Math.min(distinctTargetFor(date), cap);
     const subjectActive = (s) => (dayCounts[s] || 0) > 0;
+    const phaseOf = (l) => effPhase(l) || 'Phase 4';
+    const phaseCountOk = (l) => (phaseCounts[phaseOf(l)] || 0) < (PHASE_CAP[phaseOf(l)] ?? DEFAULT_CAP);
+    const bumpPhase = (l) => {
+      const p = phaseOf(l);
+      phaseCounts[p] = (phaseCounts[p] || 0) + 1;
+    };
     let dayUnits = 0; // effort units consumed today
 
     // Pass 1 — fill the distinct-subject requirement.
     // Prefers a subject NOT yet present in the day ("jo subject mein nahi hai wohi").
     let guard = 0;
     while (selected.length < distinctTarget && selected.length < cap && dayUnits < cap - 1e-9 && guard++ < 100) {
-      const cand = selectable.find(l => !selectedSet.has(l.id) && !subjectActive(l.subject));
+      const cand = selectable.find(l => !selectedSet.has(l.id) && !subjectActive(l.subject) && phaseCountOk(l));
       if (!cand) break;
       selected.push(cand);
       selectedSet.add(cand.id);
       dayCounts[cand.subject] = (dayCounts[cand.subject] || 0) + 1;
+      bumpPhase(cand);
       dayUnits += getLectureLoad(cand);
       remainingUnits -= getLectureLoad(cand);
       pool.splice(pool.indexOf(cand), 1);
@@ -270,15 +295,17 @@ export function computeResolvedSchedule(args) {
     // 3rd lecture of the same subject (Inorganic 5-in-one-day impossible). Only
     // lectures that FIT the remaining units are taken. selectedSet guards against
     // re-picking the same lecture (TO-DAY selectable is a separate filtered array,
-    // so pass 2 must never double-select pass 1's picks).
+    // so pass 2 must never double-select pass 1's picks). Count per DISPLAYED
+    // phase bhi bounded hai (4 Phase-1 cards ek din me kabhi nahi).
     while (selected.length < cap && dayUnits < cap - 1e-9) {
       const cand = selectable.find(
-        l => !selectedSet.has(l.id) && (dayCounts[l.subject] || 0) < 2 && dayUnits + getLectureLoad(l) <= cap + 1e-9
+        l => !selectedSet.has(l.id) && (dayCounts[l.subject] || 0) < 2 && phaseCountOk(l) && dayUnits + getLectureLoad(l) <= cap + 1e-9
       );
       if (!cand) break;
       selected.push(cand);
       selectedSet.add(cand.id);
       dayCounts[cand.subject] = (dayCounts[cand.subject] || 0) + 1;
+      bumpPhase(cand);
       dayUnits += getLectureLoad(cand);
       remainingUnits -= getLectureLoad(cand);
       pool.splice(pool.indexOf(cand), 1);

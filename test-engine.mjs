@@ -90,17 +90,17 @@ lectures.forEach(l => { if (!byDate[l.newStudyDate]) byDate[l.newStudyDate] = []
   check('S2: backlog = Wed 16 pair only', s.backlogList.length === 2 && back.join() === 'Chemistry3,Physics4', back.join(','));
   const thu = s.dayMap['2026-09-17'] || [];
   const thuSubj = subjectSet(thu);
-  check('S2: Thursday = P4(backlog) + C3(backlog) + Math L4', thu.length === 3 && thuSubj.length === 3 && thu.filter(l=>l.isBacklog).length === 2,
+  check('S2: Thursday = P4(backlog) + C3(backlog) backlog-only (own tab tak nahi jab tak backlog)', thu.length === 2 && thu.every(l => l.isBacklog),
     thu.map(l => `${l.subject}${l.lectureNumber}${l.isBacklog ? '(B)' : ''}`).join(','));
   const thuHasMath4 = thu.some(l => l.subject === 'Mathematics' && l.lectureNumber === 4 && !l.isBacklog);
-  check('S2: Thursday own seat = Math L4 (not backlog)', thuHasMath4);
+  check('S2: own Math L4 NOT in today while backlog exists', !thuHasMath4);
   // Friday morning: Thu 17 completed fully; only Wed-16 pair remains → P4/C3 are REAL backlog
   const completionsFri = { ...completions };
   lectures.filter(l => l.newStudyDate === '2026-09-17').forEach(l => completionsFri[l.id] = 'completed');
   const s2 = computeResolvedSchedule({ lectures, completions: completionsFri, today: '2026-09-18', offDays: defaultOff, autoShift: true });
   const fri = s2.dayMap['2026-09-18'] || [];
-  check('S2: Friday = P4(B) + C3(B) + own Math L5', fri.length === 3 && subjectSet(fri).length === 3 && fri.filter(l=>l.isBacklog).length === 2,
-    fri.map(l => `${l.subject}${l.lectureNumber}${l.isBacklog ? '(B)' : ''}`).join(','));
+  check('S2: Friday = P4(B) + C3(B) backlog-only', fri.length === 2 && fri.every(l => l.isBacklog),
+    fri.map(l => `${l.subject}${l.lectureNumber}${l.isBacklog ? '(B)' : ''}`).join(','));;
 }
 
 // S3: one full week missed (11-17 Sep), today = 18 Sep → backlog drains 3/day, no within-span Sundays
@@ -136,8 +136,9 @@ lectures.forEach(l => { if (!byDate[l.newStudyDate]) byDate[l.newStudyDate] = []
   check('S4: Wed 16 has no lectures (off)', !s.dayMap['2026-09-16']);
   const thu = s.dayMap['2026-09-17'] || [];
   const thuIds = thu.map(l => `${l.subject}${l.lectureNumber}`).sort();
-  check('S4: Thu = Wed pair (P4,C3) + own M4', thu.length === 3 && thuIds.join() === 'Chemistry3,Mathematics4,Physics4',
-    thu.map(l => `${l.subject}${l.lectureNumber}`).join(','));
+  check('S4: Thu = Wed pair (P4,C3) backlog ONLY (own tab tak nahi, jab tak backlog baaki)', thu.length === 2 &&
+    thuIds.join() === 'Chemistry3,Physics4' && thu.every(l => l.isBacklog),
+    thu.map(l => `${l.subject}${l.lectureNumber}${l.isBacklog ? '(B)' : ''}`).join(','));
   // from Friday morning: Wed pair is backlog (shifted to next day)
   const completionsFri = { ...completions };
   lectures.filter(l => l.newStudyDate === '2026-09-17').forEach(l => completionsFri[l.id] = 'completed');
