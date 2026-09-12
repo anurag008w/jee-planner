@@ -23,7 +23,7 @@ const dotTitle = (l) => {
 };
 
 export default function CalendarPage() {
-  const { completions, schedule, settings, commonHolidays, toggleOffDay, setSundaysOff, setAllCommonHolidays } = useStore();
+  const { completions, schedule, settings, commonHolidays, toggleOffDay, setSundaysOff, setAllCommonHolidays, lectures } = useStore();
   const today = schedule.today;
   const dayMap = schedule.dayMap || {};
   const offSet = new Set(settings.offDays || []);
@@ -79,7 +79,11 @@ export default function CalendarPage() {
   const monthLectures = Object.entries(dayMap)
     .filter(([d]) => d.startsWith(monthKey))
     .flatMap(([, ls]) => ls);
-  const monthDone = monthLectures.filter(l => completions[l.id] === 'completed').length;
+  // dayMap me sirf INCOMPLETE hote hain, isliye "done" original plan se gino
+  // (nahi to header hamesha "0 done" dikhayega).
+  const monthDone = (lectures || []).filter(
+    (l) => (l.newStudyDate || '').startsWith(monthKey) && completions[l.id] === 'completed'
+  ).length;
 
   return (
     <div className="animate-fadeIn space-y-6">
@@ -185,7 +189,7 @@ export default function CalendarPage() {
             <div className="grid grid-cols-7">
               {cells.map((cell, i) => {
                 if (cell.type === 'empty') {
-                  return <div key={`e-${i}`} className="min-h-[80px] md:min-h-[100px] border-b border-r border-gray-50 dark:border-white/[0.02] bg-gray-50/30 dark:bg-white/[0.01]" />;
+                  return <div key={`e-${i}`} className="min-h-[76px] sm:min-h-[82px] md:min-h-[98px] border-b border-r border-gray-50 dark:border-white/[0.02] bg-gray-50/30 dark:bg-white/[0.01]" />;
                 }
 
                 const isSelected = selectedDate === cell.dateStr;
@@ -196,11 +200,12 @@ export default function CalendarPage() {
                     aria-label={`${cell.dateStr}: ${cell.isOff ? 'off day' : cell.lectures.length + ' lectures, ' + cell.completedCount + ' completed'}`}
                     aria-pressed={isSelected}
                     className={`
-                      relative min-h-[62px] sm:min-h-[82px] md:min-h-[98px] p-1.5 sm:p-2 border-b border-r border-gray-100 dark:border-white/[0.04]
-                      transition-colors duration-150 text-left
+                      relative min-h-[76px] sm:min-h-[82px] md:min-h-[98px] p-1 sm:p-2 border-b border-r border-gray-100 dark:border-white/[0.04]
+                      transition-colors duration-150 text-left overflow-hidden
                       ${isSelected ? 'bg-indigo-50 dark:bg-indigo-500/10' : 'hover:bg-gray-50 dark:hover:bg-white/[0.03] active:bg-gray-100 dark:active:bg-white/[0.05]'}
                       ${!isSelected && cell.isToday ? 'bg-indigo-50/60 dark:bg-indigo-500/[0.08]' : ''}
                       ${!isSelected && cell.isOff ? 'bg-amber-50/50 dark:bg-amber-500/[0.05]' : ''}
+                      ${!isSelected && !cell.isToday && !cell.isOff && cell.isMissed ? 'bg-red-50/60 dark:bg-red-500/[0.07]' : ''}
                     `}
                   >
                     {isSelected && (
@@ -208,9 +213,9 @@ export default function CalendarPage() {
                     )}
 
                     {/* date number */}
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-center justify-between gap-0.5">
                       <span className={`
-                        text-[13px] md:text-sm font-semibold w-7 h-7 rounded-full flex items-center justify-center leading-none
+                        text-[12px] sm:text-[13px] md:text-sm font-semibold w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center leading-none shrink-0
                         ${cell.isToday
                           ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-sm shadow-indigo-500/40'
                           : cell.isMissed
@@ -224,7 +229,7 @@ export default function CalendarPage() {
                         {cell.date}
                       </span>
                       {cell.allCompleted && cell.lectures.length > 0 && (
-                        <span className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center shadow-sm shadow-emerald-500/40">
+                        <span className="w-4 h-4 rounded-full bg-emerald-500 hidden sm:flex items-center justify-center shadow-sm shadow-emerald-500/40 shrink-0">
                           <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
                             <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>
@@ -233,23 +238,23 @@ export default function CalendarPage() {
                     </div>
 
                     {/* bottom cluster: status + lectures */}
-                    <div className="absolute left-1.5 right-1.5 bottom-1.5 space-y-1">
+                    <div className="absolute left-1 right-1 bottom-1 sm:left-1.5 sm:right-1.5 sm:bottom-1.5 space-y-1">
                       {cell.isOff ? (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[8.5px] font-bold tracking-wide bg-amber-100/80 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
-                          {cell.isSunday ? 'HOLIDAY' : 'OFF'}
+                        <span className="flex items-center px-1 py-px rounded text-[9px] font-bold tracking-wide whitespace-nowrap overflow-hidden bg-amber-100/80 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                          <span className="truncate">{cell.isSunday ? 'HOLIDAY' : 'OFF'}</span>
                         </span>
                       ) : cell.lectures.length > 0 ? (
                         <>
-                          <div className="flex items-center gap-0.5 flex-wrap">
-                            {cell.lectures.slice(0, 6).map((l) => (
+                          <div className="flex items-center gap-[3px] flex-wrap">
+                            {cell.lectures.slice(0, 5).map((l) => (
                               <span
                                 key={l.id}
-                                className={`w-1.5 h-1.5 rounded-full ${dotForLecture(l)} ${l.isBacklog ? 'ring-1 ring-red-400' : ''}`}
+                                className={`w-[7px] h-[7px] rounded-full shrink-0 ${dotForLecture(l)} ${l.isBacklog ? 'ring-1 ring-red-400' : ''}`}
                                 title={`${dotTitle(l)}${l.isBacklog ? ' (backlog)' : ''}`}
                               />
                             ))}
-                            {cell.lectures.length > 6 && (
-                              <span className="text-[8px] font-semibold text-gray-400 dark:text-gray-500">+{cell.lectures.length - 6}</span>
+                            {cell.lectures.length > 5 && (
+                              <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500">+{cell.lectures.length - 5}</span>
                             )}
                           </div>
                           <div className="w-full h-[3px] rounded-full overflow-hidden bg-gray-200/80 dark:bg-white/10">
@@ -260,8 +265,9 @@ export default function CalendarPage() {
                           </div>
                         </>
                       ) : cell.isMissed ? (
-                        <span className="inline-flex items-center gap-1 text-[8.5px] font-semibold text-red-500 dark:text-red-400">
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-500" /> missed
+                        <span className="flex items-center gap-1 text-[9px] font-bold whitespace-nowrap overflow-hidden text-red-500 dark:text-red-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+                          <span className="truncate">missed</span>
                         </span>
                       ) : null}
                     </div>

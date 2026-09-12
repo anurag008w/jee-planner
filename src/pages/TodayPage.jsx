@@ -13,6 +13,7 @@ export default function TodayPage() {
   const { lectures, completions, schedule, settings, commonHolidays, setPreviewDate, setAutoShift, setSundaysOff, setAllCommonHolidays, toggleOffDay, setPhaseRanges, resetPhaseRanges, exportBackup, importBackup } = useStore();
   const [showSettings, setShowSettings] = useState(false);
   const [backupMsg, setBackupMsg] = useState('');
+  const [backlogOpen, setBacklogOpen] = useState(false); // collapsed by default
 
   const handleExport = () => {
     const data = exportBackup();
@@ -467,45 +468,47 @@ export default function TodayPage() {
         </div>
       )}
 
-      {/* RED BACKLOG POOL */}
+      {/* BACKLOG POOL — compact + collapsible (UI only, logic untouched) */}
       {backlog.length > 0 && (
-        <div className="animate-fadeIn stagger-4 bg-white dark:bg-[#1a1c2b] rounded-2xl border border-red-200 dark:border-red-900/30 overflow-hidden">
-          <div className="px-5 py-4 bg-red-50 dark:bg-red-900/10 border-b border-red-100 dark:border-red-800/30">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="w-8 h-8 rounded-xl bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-500/25">
-                  <AlertTriangle size={15} />
-                </span>
-                <div>
-                  <h3 className="text-[14px] font-bold text-red-700 dark:text-red-300">Backlog Pool</h3>
-                  <p className="text-[11px] text-red-500/80 dark:text-red-400/80">
-                    {backlog.length} pending from {schedule.missedDates?.length || 0} missed day{schedule.missedDates?.length !== 1 ? 's' : ''} — inme se koi bhi complete karo
-                  </p>
-                </div>
-              </div>
-              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-300">
+        <div className="animate-fadeIn stagger-4 bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden">
+          <button
+            onClick={() => setBacklogOpen((o) => !o)}
+            aria-expanded={backlogOpen}
+            aria-label={backlogOpen ? 'Collapse backlog' : 'Expand backlog'}
+            className="w-full px-4 py-3 text-left active:bg-gray-50 dark:active:bg-white/[0.03] transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" aria-hidden="true" />
+              <span className="flex-1 min-w-0 text-[13.5px] font-bold text-gray-900 dark:text-white leading-tight truncate">
+                Backlog
+              </span>
+              <ChevronRight
+                size={16}
+                className={`text-gray-400 dark:text-gray-500 shrink-0 transition-transform duration-200 ease-out ${backlogOpen ? 'rotate-90' : ''}`}
+              />
+            </span>
+            <span className="flex items-center gap-2 mt-1 pl-[14px]">
+              <span className="flex-1 min-w-0 text-[11px] text-gray-400 dark:text-gray-500 truncate">
+                {backlog.length} pending · {backlog.length} lecture{backlog.length !== 1 ? 's' : ''}
+              </span>
+              <span className="inline-flex items-center gap-1 px-1.5 py-px rounded-md border border-red-200 dark:border-red-500/30 text-[9px] font-bold tracking-wider text-red-500 dark:text-red-400 shrink-0">
+                <span className="w-1 h-1 rounded-full bg-red-500" aria-hidden="true" />
                 RED ZONE
               </span>
+            </span>
+          </button>
+
+          <div className={`grid transition-all duration-200 ease-out ${backlogOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+            <div className="overflow-hidden">
+              <div className="px-3 pb-3 pt-1 space-y-1.5 border-t border-gray-100 dark:border-white/5">
+                <p className="px-1 pt-2 text-[10.5px] text-gray-400 dark:text-gray-500">
+                  Oldest lectures first
+                </p>
+                {backlog.map(l => (
+                  <LectureCard key={l.id} lecture={{ ...l, isBacklog: true }} compact showDate showOriginal />
+                ))}
+              </div>
             </div>
-
-            {settings.autoShift && (
-              <p className="text-[11px] text-red-500/70 dark:text-red-400/70 mt-2 flex items-center gap-1.5">
-                <ChevronRight size={11} />
-                Ye backlog plan me aage shift ho chuka hai — pehle inhe, phir naye lectures.
-              </p>
-            )}
-            {!settings.autoShift && (
-              <p className="text-[11px] text-red-500/70 dark:text-red-400/70 mt-2 flex items-center gap-1.5">
-                <ChevronRight size={11} />
-                Auto-shift band hai — ye backlog kahen shift nahi hua, sirf yahan red me dikh raha hai.
-              </p>
-            )}
-          </div>
-
-          <div className="p-4 space-y-2">
-            {backlog.map(l => (
-              <LectureCard key={l.id} lecture={{ ...l, isBacklog: true }} compact showDate showOriginal />
-            ))}
           </div>
         </div>
       )}
