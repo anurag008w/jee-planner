@@ -39,15 +39,17 @@ jobs:
       - name: Build (premium bundle + PWA)
         run: npm run build
 
-      - name: Smoke test — built bundle + manifest + sw
+      - name: Smoke test — built bundle + manifest + splash
         run: |
-          [ -f dist/index.html ] || { echo "✘ no dist/index.html"; exit 1; }
-          [ -f dist/manifest.webmanifest ] || { echo "✘ no manifest"; exit 1; }
-          [ -f dist/sw.js ] || { echo "✘ no service worker"; exit 1; }
-          grep -q 'id="root"' dist/index.html && echo "✔ root id"
-          grep -q 'manifest.webmanifest' dist/index.html && echo "✔ manifest linked"
-          node -e "JSON.parse(require('node:fs').readFileSync('dist/manifest.webmanifest','utf8'))" && echo "✔ manifest valid JSON"
-          echo "SMOKE OK"
+          set -e
+          test -f dist/index.html
+          test -f dist/manifest.webmanifest
+          test -f dist/sw.js
+          grep -q 'id="root"' dist/index.html
+          grep -q 'manifest.webmanifest' dist/index.html
+          grep -q 'JEE Planner' dist/index.html
+          node -e "JSON.parse(require('node:fs').readFileSync('dist/manifest.webmanifest','utf8'))"
+          echo 'SMOKE OK'
 
       - name: Upload web artifact
         uses: actions/upload-artifact@v4
@@ -63,13 +65,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # tags chahiye taaki versionCode tag se bane (v1.3.1 → 10301)
+          fetch-depth: 0
 
       - name: Create release tag (manual run only)
         if: github.event_name == 'workflow_dispatch'
         env:
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
+          set -e
           case "$RELEASE_TAG" in
             v[0-9]*.[0-9]*.[0-9]*) ;;
             *) echo "Invalid release tag: $RELEASE_TAG (use vMAJOR.MINOR.PATCH)"; exit 1 ;;
@@ -82,7 +85,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag "$RELEASE_TAG" "$GITHUB_SHA"
           git push origin "$RELEASE_TAG"
-          echo "Created release tag: $RELEASE_TAG"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -102,16 +104,16 @@ jobs:
       - name: Build web bundle
         run: npm run build
 
-      - name: Sync Capacitor (embed fresh bundle into Android project)
+      - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Decode signing keystore (permanent key → in-place updates)
+      - name: Decode signing keystore
         run: |
           echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > android/app/jee-planner.keystore
-          ls -la android/app/jee-planner.keystore
+          test -s android/app/jee-planner.keystore
           keytool -list -keystore android/app/jee-planner.keystore -storepass "${{ secrets.KEYSTORE_PASSWORD }}" -alias "${{ secrets.KEY_ALIAS }}" 2>&1 | head -3
 
-      - name: Build signed APK (stable signature — updates merge in-place)
+      - name: Build signed APK
         working-directory: android
         env:
           KEYSTORE_PATH: jee-planner.keystore
@@ -119,28 +121,40 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           APP_VERSION_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
-        run: ./gradlew assembleRelease
+        run: ./gradlew clean assembleRelease
 
-      - name: Verify APK is SIGNED (unsigned = install fail, gate it here)
+      - name: Verify signed APK
         working-directory: android
         run: |
-          ls -la app/build/outputs/apk/release/
-          APKSIGNER=$(ls $ANDROID_HOME/build-tools/*/apksigner | head -1)
-          "$APKSIGNER" verify --print-certs app/build/outputs/apk/release/*.apk | head -5
+          set -e
+          APK='app/build/outputs/apk/release/app-release.apk'
+          test -f "$APK"
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
 
-      - name: Upload APK artifact
+      - name: Name release APK
+        working-directory: android
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+        run: |
+          set -e
+          mkdir -p app/build/outputs/apk/release/named
+          cp app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/named/JEE-Planner-${RELEASE_TAG}.apk"
+          test -f "app/build/outputs/apk/release/named/JEE-Planner-${RELEASE_TAG}.apk"
+
+      - name: Upload named APK
         uses: actions/upload-artifact@v4
         with:
           name: jee-planner-apk
-          path: android/app/build/outputs/apk/release/*.apk
+          path: android/app/build/outputs/apk/release/named/JEE-Planner-*.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Attach APK to Release
+      - name: Attach named APK to Release
         if: github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.release_tag }}
           name: JEE Planner ${{ inputs.release_tag }}
           generate_release_notes: true
-          files: android/app/build/outputs/apk/release/*.apk
+          files: android/app/build/outputs/apk/release/named/JEE-Planner-*.apk
