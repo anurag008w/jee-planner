@@ -25,9 +25,9 @@ ulimit -n 65536 2>/dev/null || true
 say()   { echo "$*"; }
 log()   { echo "[$(date '+%F %T')] $*" >> "${LOG}"; }
 
-# Port 1601 pe LISTEN karne wale PIDs
+# Port 1601 pe LISTEN karne wale PIDs (sirf humara port — dusre apps KOI NAHI!)
 port_pids() {
-  ss -ltnp 2>/dev/null | grep -oP '(?<=pid=)\d+' | sort -un
+  ss -ltnp 2>/dev/null | grep -E ":${PORT}[[:space:]]" | grep -oP '(?<=pid=)\d+' | sort -un
 }
 
 # dist rebuild chahiye ya nahi? Har build-input track karta hai —
@@ -46,7 +46,7 @@ needs_build() {
 # --- 1) Purane instance(s) dhoondo: port holders + server.mjs processes ---
 VICTIMS="$({
   port_pids
-  pgrep -f 'server\.mjs' 2>/dev/null || true
+  pgrep -f '^node server\.mjs$' 2>/dev/null || true
 } | grep -E '^[0-9]+$' | sort -un | grep -v -e "^$$\$" -e "^$PPID\$" || true)"
 
 if [ -n "${VICTIMS}" ]; then
@@ -100,10 +100,12 @@ else
 fi
 
 # --- 4) Fresh server start (background — terminal band ho jayega) ---
+# setsid = naya session → terminal/launcher band hone se server NAHI marta
 : > "${LOG}"
-nohup node server.mjs >> "${LOG}" 2>&1 &
+setsid nohup node server.mjs >> "${LOG}" 2>&1 < /dev/null &
 NEW_PID=$!
-log "started new server pid=${NEW_PID}"
+disown 2>/dev/null || true
+log "started new server pid=${NEW_PID} (detached session)"
 
 # --- 5) Ready hone tak poll (max ~10 sec) ---
 READY=0
