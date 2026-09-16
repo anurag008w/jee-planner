@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 
 export default function TodayPage() {
-  const { lectures, completions, schedule, settings, commonHolidays, setPreviewDate, setAutoShift, setSundaysOff, setAllCommonHolidays, toggleOffDay, setPhaseRanges, resetPhaseRanges, exportBackup, importBackup } = useStore();
+  const { lectures, completions, schedule, settings, commonHolidays, setPreviewDate, setStartDate, setAutoShift, setSundaysOff, setAllCommonHolidays, toggleOffDay, setPhaseRanges, resetPhaseRanges, exportBackup, importBackup } = useStore();
   const [showSettings, setShowSettings] = useState(false);
   const [backupMsg, setBackupMsg] = useState('');
   const [backlogOpen, setBacklogOpen] = useState(false); // collapsed by default
@@ -130,6 +130,28 @@ export default function TodayPage() {
       {showSettings && (
         <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 p-4 animate-scaleIn space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <p className="text-[13px] font-semibold text-gray-800 dark:text-gray-100">Schedule Start Date</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500">Is date ko Day 1 maan kar poora lecture plan automatically recalculate hoga. Lectures/topics same rahenge.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={settings.startDate || ''}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[12.5px] text-gray-700 dark:text-gray-300 outline-none focus:border-indigo-300 dark:focus:border-indigo-600"
+                aria-label="Schedule start date"
+              />
+              <button
+                onClick={() => setStartDate('2026-09-11')}
+                className="px-3 py-2 rounded-xl text-[12px] font-medium text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 transition-colors"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-white/5">
             <div>
               <p className="text-[13px] font-semibold text-gray-800 dark:text-gray-100">Preview Date (testing)</p>
               <p className="text-[11px] text-gray-400 dark:text-gray-500">Simulate the app on any date to see backlog shift live.</p>
