@@ -20,16 +20,35 @@ window.setTimeout(() => {
   })
 }, BOOT_SPLASH_TOTAL_MS - BOOT_SPLASH_FADE_MS)
 
+const RELEASE_API = 'https://api.github.com/repos/anurag008w/jee-planner/releases/latest'
+const AUTO_UPDATE_KEY = 'jee-planner-auto-updates'
+const LAST_CHECK_KEY = 'jee-planner-last-update-check'
+const LAST_RELEASE_KEY = 'jee-planner-latest-release'
+
 const shouldAutoUpdateCheck = () => {
   try {
-    return localStorage.getItem('jee-planner-auto-updates') !== 'false'
+    return localStorage.getItem(AUTO_UPDATE_KEY) !== 'false'
   } catch {
     return true
   }
 }
 
-// ----- PWA: in-place auto-update -----
-// The user can disable periodic checks from Settings → Updates.
+const checkLatestGitHubRelease = async () => {
+  if (!shouldAutoUpdateCheck()) return
+  try {
+    const res = await fetch(RELEASE_API, { headers: { Accept: 'application/vnd.github+json' } })
+    if (!res.ok) return
+    const data = await res.json()
+    localStorage.setItem(LAST_RELEASE_KEY, JSON.stringify(data))
+    localStorage.setItem(LAST_CHECK_KEY, new Date().toISOString())
+    window.dispatchEvent(new CustomEvent('jee-planner-release-checked', { detail: data }))
+  } catch {
+    // Offline/GitHub unavailable: keep the last known release information.
+  }
+}
+
+// ----- PWA: in-place auto-update + GitHub release awareness -----
+// The user can disable all periodic update checks from Settings → Updates.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').then((reg) => {
@@ -43,9 +62,12 @@ if ('serviceWorker' in navigator) {
         })
       })
 
-      // Keep update checks user-controlled. Default is ON; Settings can switch it OFF.
+      checkLatestGitHubRelease()
+
       setInterval(() => {
-        if (shouldAutoUpdateCheck()) reg.update().catch(() => {})
+        if (!shouldAutoUpdateCheck()) return
+        reg.update().catch(() => {})
+        checkLatestGitHubRelease()
       }, 30 * 60 * 1000)
     }).catch(() => {})
 
