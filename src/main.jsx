@@ -9,6 +9,14 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>,
 )
 
+// Hide the platform-neutral branded boot splash only after React has painted.
+// Android also gets the native AndroidX splash before the WebView starts.
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    window.__hideBootSplash?.()
+  })
+})
+
 // ----- PWA: in-place auto-update (same app, no reinstall) -----
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
