@@ -6,7 +6,7 @@ import {
   Github, CheckCircle2, AlertCircle, ExternalLink, Sparkles, MonitorCog,
 } from 'lucide-react';
 
-const CURRENT_VERSION = '1.5.0';
+const CURRENT_VERSION = '1.5.1';
 const RELEASE_API = 'https://api.github.com/repos/anurag008w/jee-planner/releases/latest';
 const RELEASES_URL = 'https://github.com/anurag008w/jee-planner/releases';
 const AUTO_UPDATE_KEY = 'jee-planner-auto-updates';
