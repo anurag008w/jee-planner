@@ -15,8 +15,12 @@
         <item name="android:background">@null</item>
     </style>
 
-
+    <!-- Branded launch screen: Android 12+ animates the logo; older Android
+         versions keep the same dark branded background and launcher mark. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+        <item name="windowSplashScreenBackground">@color/jee_planner_splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo_animated</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+        <item name="android:background">@color/jee_planner_splash_background</item>
     </style>
 </resources>
