@@ -174,7 +174,6 @@ export function computeResolvedSchedule(args) {
 
   const pool = sortedLectures.filter((lecture) => !completed(lecture.id));
 
-  // One ordered lecture series per chapter.
   const seriesLists = {};
   pool.forEach((lecture) => {
     const key = seriesKey(lecture);
@@ -183,10 +182,6 @@ export function computeResolvedSchedule(args) {
   });
   Object.values(seriesLists).forEach((series) => series.sort(lectureOrder));
 
-  // Chapters are also ordered within each subject/chemistry branch track.
-  // The first chapter is the earliest chapter represented by the remaining pool;
-  // subsequent chapters are unlocked only after every incomplete lecture in the
-  // current chapter has been consumed.
   const chapterLists = {};
   Object.entries(seriesLists).forEach(([key, series]) => {
     const firstLecture = series[0];
@@ -232,7 +227,6 @@ export function computeResolvedSchedule(args) {
     const nextId = series[index + 1]?.id ?? null;
     seriesNextId.set(key, nextId);
 
-    // Current chapter is exhausted exactly when this was its last incomplete lecture.
     if (!nextId) {
       const track = trackKey(lecture);
       const chapters = chapterLists[track] || [];
@@ -273,7 +267,16 @@ export function computeResolvedSchedule(args) {
 
     const daysLeft = countStudyDays(date);
     const needed = Math.ceil(remainingUnits / Math.max(1, daysLeft));
-    const cap = Math.min(phaseCap, Math.max(1, needed));
+    const adaptiveCap = Math.min(phaseCap, Math.max(1, needed));
+
+    // During catch-up, do not let the adaptive averaging rule collapse a
+    // Phase-2/3/4 day below its diversity floor while backlog still exists.
+    // Clean plans keep their original adaptive behaviour, preserving the
+    // workbook-compatible finish date and tail compression.
+    const backlogActive = pool.some((lecture) => lecture.newStudyDate < today);
+    const catchUpFloor = backlogActive ? Math.min(phaseCap, distinctTargetFor(date)) : 0;
+    const cap = Math.max(adaptiveCap, catchUpFloor);
+
     dayCap[date] = cap;
     dayLoad[date] = 0;
 
@@ -338,9 +341,6 @@ export function computeResolvedSchedule(args) {
     });
   }
 
-  // Absolute safety net. This should be unreachable for the current dataset,
-  // but even extreme overflow continues through the SAME active chapter state
-  // and hard caps rather than blindly shifting pool[0] into a date.
   if (pool.length > 0) {
     let cursor = new Date(end);
     let overflowDate = toISODate(cursor);
