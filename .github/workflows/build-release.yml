@@ -57,7 +57,22 @@ jobs:
         run: |
           set -e
           npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
-          node -e "const p=require('./package.json'); const l=require('./package-lock.json'); if(p.version!==process.env.RELEASE_VERSION||l.version!==process.env.RELEASE_VERSION||l.packages?.['']?.version!==process.env.RELEASE_VERSION) process.exit(1); console.log('package.json/package-lock.json -> '+process.env.RELEASE_VERSION)"
+          node <<'NODE'
+          const fs = require('node:fs');
+          const expected = process.env.RELEASE_VERSION;
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          const actual = {
+            package: pkg.version,
+            lock: lock.version,
+            root: lock.packages?.['']?.version,
+          };
+          if (actual.package !== expected || actual.lock !== expected || actual.root !== expected) {
+            console.error({ expected, actual });
+            process.exit(1);
+          }
+          console.log(`Package metadata verified: ${expected}`);
+          NODE
 
       - name: Commit release version metadata
         id: release
@@ -69,12 +84,14 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package.json package-lock.json
-          git diff --cached --quiet && { echo "No package metadata changes needed."; git rev-parse HEAD > /tmp/release_commit; } || {
+          if git diff --cached --quiet; then
+            echo "No package metadata changes needed."
+            COMMIT="$(git rev-parse HEAD)"
+          else
             git commit -m "chore(release): sync package metadata to ${RELEASE_VERSION} [skip ci]"
             git push origin HEAD:main
-            git rev-parse HEAD > /tmp/release_commit
-          }
-          COMMIT="$(cat /tmp/release_commit)"
+            COMMIT="$(git rev-parse HEAD)"
+          fi
           git tag "$RELEASE_TAG" "$COMMIT"
           git push origin "$RELEASE_TAG"
           echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
@@ -116,7 +133,24 @@ jobs:
       - name: Verify package metadata version
         env:
           EXPECTED_VERSION: ${{ steps.version.outputs.version }}
-        run: node -e "const p=require('./package.json'); const l=require('./package-lock.json'); if(p.version!==process.env.EXPECTED_VERSION||l.version!==process.env.EXPECTED_VERSION||l.packages?.['']?.version!==process.env.EXPECTED_VERSION) { console.error({package:p.version,lock:l.version,root:l.packages?.['']?.version,expected:process.env.EXPECTED_VERSION}); process.exit(1); } console.log('Package metadata verified: '+process.env.EXPECTED_VERSION)"
+        run: |
+          set -e
+          node <<'NODE'
+          const fs = require('node:fs');
+          const expected = process.env.EXPECTED_VERSION;
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          const actual = {
+            package: pkg.version,
+            lock: lock.version,
+            root: lock.packages?.['']?.version,
+          };
+          if (expected !== 'dev' && (actual.package !== expected || actual.lock !== expected || actual.root !== expected)) {
+            console.error({ expected, actual });
+            process.exit(1);
+          }
+          console.log('Package metadata verified:', actual);
+          NODE
 
       - name: Scheduler engine tests
         run: node test-engine.mjs
@@ -178,7 +212,7 @@ jobs:
           cache: npm
 
       - name: Setup Java 21 (Android Gradle)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
@@ -189,7 +223,24 @@ jobs:
       - name: Verify package metadata version
         env:
           EXPECTED_VERSION: ${{ needs.prepare.outputs.version || 'dev' }}
-        run: node -e "const p=require('./package.json'); const l=require('./package-lock.json'); if(p.version!==process.env.EXPECTED_VERSION||l.version!==process.env.EXPECTED_VERSION||l.packages?.['']?.version!==process.env.EXPECTED_VERSION) { console.error({package:p.version,lock:l.version,root:l.packages?.['']?.version,expected:process.env.EXPECTED_VERSION}); process.exit(1); } console.log('Package metadata verified: '+process.env.EXPECTED_VERSION)"
+        run: |
+          set -e
+          node <<'NODE'
+          const fs = require('node:fs');
+          const expected = process.env.EXPECTED_VERSION;
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          const actual = {
+            package: pkg.version,
+            lock: lock.version,
+            root: lock.packages?.['']?.version,
+          };
+          if (expected !== 'dev' && (actual.package !== expected || actual.lock !== expected || actual.root !== expected)) {
+            console.error({ expected, actual });
+            process.exit(1);
+          }
+          console.log('Package metadata verified:', actual);
+          NODE
 
       - name: Build web bundle
         env:
