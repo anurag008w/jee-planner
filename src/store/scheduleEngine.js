@@ -268,11 +268,6 @@ export function computeResolvedSchedule(args) {
     const daysLeft = countStudyDays(date);
     const needed = Math.ceil(remainingUnits / Math.max(1, daysLeft));
     const adaptiveCap = Math.min(phaseCap, Math.max(1, needed));
-
-    // During catch-up, do not let the adaptive averaging rule collapse a
-    // Phase-2/3/4 day below its diversity floor while backlog still exists.
-    // Clean plans keep their original adaptive behaviour, preserving the
-    // workbook-compatible finish date and tail compression.
     const backlogActive = pool.some((lecture) => lecture.newStudyDate < today);
     const catchUpFloor = backlogActive ? Math.min(phaseCap, distinctTargetFor(date)) : 0;
     const cap = Math.max(adaptiveCap, catchUpFloor);
@@ -291,10 +286,6 @@ export function computeResolvedSchedule(args) {
     const selected = [];
     const selectedSet = new Set();
     const subjectCounts = {};
-    const phaseCounts = {};
-    const phaseOf = (lecture) => effPhase(lecture) || 'Phase 4';
-    const phaseCountOk = (lecture) =>
-      (phaseCounts[phaseOf(lecture)] || 0) < (PHASE_CAP[phaseOf(lecture)] ?? DEFAULT_CAP);
 
     const pick = (predicate) => {
       const candidate = selectable.find((lecture) => {
@@ -302,7 +293,6 @@ export function computeResolvedSchedule(args) {
         if (!pool.includes(lecture)) return false;
         if (!isSequenceEligible(lecture)) return false;
         if ((subjectCounts[lecture.subject] || 0) >= 2) return false;
-        if (!phaseCountOk(lecture)) return false;
         const load = getLectureLoad(lecture);
         if (dayLoad[date] + load > cap + EPS) return false;
         return predicate(lecture);
@@ -313,8 +303,6 @@ export function computeResolvedSchedule(args) {
       selected.push(candidate);
       selectedSet.add(candidate.id);
       subjectCounts[candidate.subject] = (subjectCounts[candidate.subject] || 0) + 1;
-      const phase = phaseOf(candidate);
-      phaseCounts[phase] = (phaseCounts[phase] || 0) + 1;
       dayLoad[date] += load;
       remainingUnits -= load;
       pool.splice(pool.indexOf(candidate), 1);
@@ -344,19 +332,18 @@ export function computeResolvedSchedule(args) {
   if (pool.length > 0) {
     let cursor = new Date(end);
     let overflowDate = toISODate(cursor);
-    let counts = { total: 0, effort: 0, subjects: {}, phases: {} };
+    let counts = { total: 0, effort: 0, subjects: {} };
 
     const resetOverflowDay = () => {
       cursor.setDate(cursor.getDate() + 1);
       overflowDate = toISODate(cursor);
-      counts = { total: 0, effort: 0, subjects: {}, phases: {} };
+      counts = { total: 0, effort: 0, subjects: {} };
     };
 
     while (pool.length > 0) {
       const candidate = pool.find((lecture) =>
         isSequenceEligible(lecture)
         && (counts.subjects[lecture.subject] || 0) < 2
-        && (counts.phases[effPhase(lecture) || 'Phase 4'] || 0) < (PHASE_CAP[effPhase(lecture) || 'Phase 4'] ?? DEFAULT_CAP)
         && counts.effort + getLectureLoad(lecture) <= DEFAULT_CAP + EPS
         && counts.total < DEFAULT_CAP
       );
@@ -366,13 +353,11 @@ export function computeResolvedSchedule(args) {
         continue;
       }
 
-      const phase = effPhase(candidate) || 'Phase 4';
       const load = getLectureLoad(candidate);
       pool.splice(pool.indexOf(candidate), 1);
       counts.total += 1;
       counts.effort += load;
       counts.subjects[candidate.subject] = (counts.subjects[candidate.subject] || 0) + 1;
-      counts.phases[phase] = (counts.phases[phase] || 0) + 1;
       resolved[candidate.id] = {
         resolvedDate: overflowDate,
         isBacklog: candidate.newStudyDate < today,
