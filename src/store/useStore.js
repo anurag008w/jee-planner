@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import dataset from '../data/dataset.json';
 import { computeResolvedSchedule, getSundaysBetween, COMMON_HOLIDAYS } from './scheduleEngine';
 import { getToday } from '../utils/helpers';
-import { shiftLecturesToStartDate } from './scheduleDateUtils';
+import { dateDiffInDays, shiftLecturesToStartDate, shiftSundayOffDays } from './scheduleDateUtils';
 
 const scheduleDates = [...new Set(dataset.lectures.map(l => l.newStudyDate))].sort();
 const ORIGINAL_START_DATE = scheduleDates[0];
@@ -13,9 +13,6 @@ const defaultOffDays = [...new Set([...defaultSundayOffs, ...commonHolidayDates]
 
 const seriesKey = (lecture) => [lecture.subject, lecture.chemistryBranch || '', lecture.chapterName].join('::');
 
-// Final integrity pass: a lecture can never resolve before its own previous
-// lecture in the same chapter/series. This is deliberately done after the
-// scheduler so backlog/catch-up logic cannot reintroduce an ordering violation.
 const enforceLectureOrder = (schedule, lectures, completions) => {
   const bySeries = {};
   lectures.forEach((lecture) => {
@@ -44,15 +41,14 @@ const enforceLectureOrder = (schedule, lectures, completions) => {
     });
   });
 
-  // Rebuild dayMap from resolved dates so the UI can never show a later lecture
-  // on an earlier day. Existing resolved metadata is preserved.
   const rebuilt = {};
   Object.entries(schedule.resolved).forEach(([id, meta]) => {
     const lecture = lectures.find(l => String(l.id) === String(id));
     if (!lecture || completions[lecture.id] === 'completed') return;
+    const oldItem = schedule.dayMap[meta.resolvedDate]?.find(l => l.id === lecture.id);
     const item = {
       ...lecture,
-      phase: schedule.dayMap[meta.resolvedDate]?.find(l => l.id === lecture.id)?.phase || lecture.phase,
+      phase: oldItem?.phase || lecture.phase,
       isBacklog: meta.isBacklog,
       resolvedDate: meta.resolvedDate,
     };
@@ -106,7 +102,6 @@ const useStore = create(
         chapterProgress: dataset.chapterProgress,
         dashboard: dataset.dashboard,
         commonHolidays: COMMON_HOLIDAYS,
-
         currentPage: 'today',
         theme: 'light',
         searchOpen: false,
@@ -116,31 +111,14 @@ const useStore = create(
         syncOpen: false,
 
         sync: {
-          token: '',
-          owner: 'anurag008w',
-          repo: 'jee-planner-data',
-          branch: 'main',
-          path: 'planner-data.json',
-          lastRemoteSha: '',
-          lastSyncedAt: '',
-          lastSnapshot: '',
+          token: '', owner: 'anurag008w', repo: 'jee-planner-data', branch: 'main', path: 'planner-data.json',
+          lastRemoteSha: '', lastSyncedAt: '', lastSnapshot: '',
         },
         setSyncOpen: (open) => set({ syncOpen: open }),
         setSyncConfig: (patch) => set((s) => ({ sync: { ...s.sync, ...patch } })),
-        markSynced: ({ sha, snapshot }) => set((s) => ({
-          sync: {
-            ...s.sync,
-            lastRemoteSha: sha || s.sync.lastRemoteSha,
-            lastSyncedAt: new Date().toISOString(),
-            lastSnapshot: snapshot || s.sync.lastSnapshot,
-          },
-        })),
+        markSynced: ({ sha, snapshot }) => set((s) => ({ sync: { ...s.sync, lastRemoteSha: sha || s.sync.lastRemoteSha, lastSyncedAt: new Date().toISOString(), lastSnapshot: snapshot || s.sync.lastSnapshot } })),
 
-        filters: {
-          date: '', phase: '', subject: '', chemistryBranch: '',
-          chapter: '', faculty: '', status: '',
-        },
-
+        filters: { date: '', phase: '', subject: '', chemistryBranch: '', chapter: '', faculty: '', status: '' },
         completions: {},
         settings: initialSettings,
         schedule: { ...initialSchedule, today: getToday() },
@@ -152,9 +130,7 @@ const useStore = create(
         setSelectedLecture: (lecture) => set({ selectedLecture: lecture }),
         setSidebarOpen: (open) => set({ sidebarOpen: open }),
         setFilters: (filters) => set((s) => ({ filters: { ...s.filters, ...filters } })),
-        resetFilters: () => set({
-          filters: { date: '', phase: '', subject: '', chemistryBranch: '', chapter: '', faculty: '', status: '' }
-        }),
+        resetFilters: () => set({ filters: { date: '', phase: '', subject: '', chemistryBranch: '', chapter: '', faculty: '', status: '' } }),
 
         recompute: (opts = {}) => {
           const s = get();
@@ -165,123 +141,75 @@ const useStore = create(
             if (prevPlan.length > 0) {
               const frozen = prevPlan.filter(l => s.completions[l.id] !== 'completed');
               schedule.dayMap[today] = frozen;
-              frozen.forEach(l => {
-                schedule.resolved[l.id] = { resolvedDate: today, isBacklog: l.newStudyDate < today };
-              });
+              frozen.forEach(l => { schedule.resolved[l.id] = { resolvedDate: today, isBacklog: l.newStudyDate < today }; });
             }
           }
           set({ schedule: { ...schedule, today } });
         },
 
-        markComplete: (id) => {
-          set((s) => ({ completions: { ...s.completions, [id]: 'completed' } }));
-          get().recompute({ freezeToday: true });
-        },
-        markIncomplete: (id) => {
-          set((s) => ({ completions: { ...s.completions, [id]: 'not_started' } }));
-          get().recompute({ freezeToday: true });
-        },
+        markComplete: (id) => { set((s) => ({ completions: { ...s.completions, [id]: 'completed' } })); get().recompute({ freezeToday: true }); },
+        markIncomplete: (id) => { set((s) => ({ completions: { ...s.completions, [id]: 'not_started' } })); get().recompute({ freezeToday: true }); },
         toggleComplete: (id) => {
-          set((s) => ({
-            completions: { ...s.completions, [id]: s.completions[id] === 'completed' ? 'not_started' : 'completed' }
-          }));
+          set((s) => ({ completions: { ...s.completions, [id]: s.completions[id] === 'completed' ? 'not_started' : 'completed' } }));
           get().recompute({ freezeToday: true });
         },
         completeMany: (ids) => {
-          set((s) => {
-            const completions = { ...s.completions };
-            ids.forEach((id) => { completions[id] = 'completed'; });
-            return { completions };
-          });
+          set((s) => { const completions = { ...s.completions }; ids.forEach((id) => { completions[id] = 'completed'; }); return { completions }; });
           get().recompute({ freezeToday: true });
         },
 
         toggleOffDay: (date) => {
           set((s) => {
             const has = s.settings.offDays.includes(date);
-            const offDays = has
-              ? s.settings.offDays.filter((d) => d !== date)
-              : [...s.settings.offDays, date].sort();
+            const offDays = has ? s.settings.offDays.filter((d) => d !== date) : [...s.settings.offDays, date].sort();
             return { settings: { ...s.settings, offDays } };
           });
           get().recompute();
         },
         setSundaysOff: (on) => {
           set((s) => {
-            const offDays = on
-              ? [...new Set([...s.settings.offDays, ...defaultOffDays])].sort()
-              : s.settings.offDays.filter((d) => new Date(d).getDay() !== 0);
+            const offDays = on ? [...new Set([...s.settings.offDays, ...defaultOffDays])].sort() : s.settings.offDays.filter((d) => new Date(d).getDay() !== 0);
             return { settings: { ...s.settings, offDays } };
           });
           get().recompute();
         },
         setAllCommonHolidays: (on) => {
           set((s) => {
-            const offDays = on
-              ? [...new Set([...s.settings.offDays, ...commonHolidayDates])].sort()
-              : s.settings.offDays.filter((d) => !commonHolidayDates.includes(d));
+            const offDays = on ? [...new Set([...s.settings.offDays, ...commonHolidayDates])].sort() : s.settings.offDays.filter((d) => !commonHolidayDates.includes(d));
             return { settings: { ...s.settings, offDays } };
           });
           get().recompute();
         },
-        setPreviewDate: (date) => {
-          set((s) => ({ settings: { ...s.settings, previewDate: date } }));
-          get().recompute();
-        },
+        setPreviewDate: (date) => { set((s) => ({ settings: { ...s.settings, previewDate: date } })); get().recompute(); },
         setStartDate: (date) => {
           if (!date) return;
-          set((s) => ({ settings: { ...s.settings, startDate: date } }));
-          get().recompute();
-        },
-        setAutoShift: (value) => {
-          set((s) => ({ settings: { ...s.settings, autoShift: value } }));
-          get().recompute();
-        },
-        setPhaseRanges: (ranges) => {
-          set((s) => ({ settings: { ...s.settings, phaseRanges: ranges } }));
-          get().recompute();
-        },
-        resetPhaseRanges: () => {
-          set((s) => ({ settings: { ...s.settings, phaseRanges: null } }));
-          get().recompute();
-        },
-        setChapterPhase: (chapter, phase) => {
           set((s) => {
-            const cp = { ...(s.settings.chapterPhases || {}) };
-            if (phase === '' || phase === 'auto') delete cp[chapter];
-            else cp[chapter] = phase;
-            return { settings: { ...s.settings, chapterPhases: cp } };
+            const oldStart = s.settings.startDate || ORIGINAL_START_DATE;
+            const deltaDays = dateDiffInDays(oldStart, date);
+            const offDays = shiftSundayOffDays(s.settings.offDays || [], deltaDays);
+            return { settings: { ...s.settings, startDate: date, offDays: [...new Set(offDays)].sort() } };
           });
           get().recompute();
         },
-        resetChapterPhases: () => {
-          set((s) => ({ settings: { ...s.settings, chapterPhases: {} } }));
+        setAutoShift: (value) => { set((s) => ({ settings: { ...s.settings, autoShift: value } })); get().recompute(); },
+        setPhaseRanges: (ranges) => { set((s) => ({ settings: { ...s.settings, phaseRanges: ranges } })); get().recompute(); },
+        resetPhaseRanges: () => { set((s) => ({ settings: { ...s.settings, phaseRanges: null } })); get().recompute(); },
+        setChapterPhase: (chapter, phase) => {
+          set((s) => { const cp = { ...(s.settings.chapterPhases || {}) }; if (phase === '' || phase === 'auto') delete cp[chapter]; else cp[chapter] = phase; return { settings: { ...s.settings, chapterPhases: cp } }; });
           get().recompute();
         },
+        resetChapterPhases: () => { set((s) => ({ settings: { ...s.settings, chapterPhases: {} } })); get().recompute(); },
 
         isCompleted: (id) => get().completions[id] === 'completed',
         getCompletionCount: () => Object.values(get().completions).filter((v) => v === 'completed').length,
         getDateLectures: (date) => get().lectures.filter((l) => l.newStudyDate === date),
 
-        exportBackup: () => {
-          const s = get();
-          return {
-            app: 'jee-planner',
-            exportedAt: new Date().toISOString(),
-            completions: s.completions,
-            settings: s.settings,
-            theme: s.theme,
-          };
-        },
+        exportBackup: () => { const s = get(); return { app: 'jee-planner', exportedAt: new Date().toISOString(), completions: s.completions, settings: s.settings, theme: s.theme }; },
         importBackup: (data) => {
           const parsed = typeof data === 'string' ? JSON.parse(data) : data;
-          if (!parsed || parsed.app !== 'jee-planner') {
-            throw new Error('Invalid backup — yeh JEE Planner ki backup file nahi hai');
-          }
+          if (!parsed || parsed.app !== 'jee-planner') throw new Error('Invalid backup — yeh JEE Planner ki backup file nahi hai');
           const current = get();
-          const offDays = (parsed.settings && Array.isArray(parsed.settings.offDays))
-            ? parsed.settings.offDays
-            : (current.settings.offDays || []);
+          const offDays = (parsed.settings && Array.isArray(parsed.settings.offDays)) ? parsed.settings.offDays : (current.settings.offDays || []);
           set({
             completions: (parsed.completions && typeof parsed.completions === 'object') ? parsed.completions : {},
             theme: parsed.theme === 'dark' ? 'dark' : 'light',
@@ -333,16 +261,12 @@ const useStore = create(
             chapterPhases: base.settings?.chapterPhases || {},
           },
           sync: {
-            token: '', owner: 'anurag008w', repo: 'jee-planner-data',
-            branch: 'main', path: 'planner-data.json',
-            lastRemoteSha: '', lastSyncedAt: '', lastSnapshot: '',
-            ...(base.sync || {}),
+            token: '', owner: 'anurag008w', repo: 'jee-planner-data', branch: 'main', path: 'planner-data.json',
+            lastRemoteSha: '', lastSyncedAt: '', lastSnapshot: '', ...(base.sync || {}),
           },
         };
       },
-      onRehydrateStorage: () => (state) => {
-        if (state && typeof state.recompute === 'function') state.recompute();
-      },
+      onRehydrateStorage: () => (state) => { if (state && typeof state.recompute === 'function') state.recompute(); },
     }
   )
 );
