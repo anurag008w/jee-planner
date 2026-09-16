@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag to create (example: v1.3.5)'
+        required: true
+        default: 'v1.3.5'
+        type: string
 
 concurrency:
   group: build-${{ github.ref }}
@@ -56,6 +62,25 @@ jobs:
         with:
           fetch-depth: 0 # tags chahiye taaki versionCode tag se bane (v1.3.1 → 10301)
 
+      - name: Create release tag (manual run only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          case "$RELEASE_TAG" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "Invalid release tag: $RELEASE_TAG (use vMAJOR.MINOR.PATCH)"; exit 1 ;;
+          esac
+          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release tag already exists: $RELEASE_TAG"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "$RELEASE_TAG" "$GITHUB_SHA"
+          git push origin "$RELEASE_TAG"
+          echo "Created release tag: $RELEASE_TAG"
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -90,7 +115,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          APP_VERSION_NAME: ${{ github.ref_name }}
+          APP_VERSION_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
         run: ./gradlew assembleRelease
 
       - name: Verify APK is SIGNED (unsigned = install fail, gate it here)
@@ -108,8 +133,11 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Attach APK to Release (when a tag is pushed)
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Attach APK to Release
+        if: github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.release_tag }}
+          name: JEE Planner ${{ inputs.release_tag }}
+          generate_release_notes: true
           files: android/app/build/outputs/apk/release/*.apk
