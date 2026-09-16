@@ -2,21 +2,84 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#6366f1" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0f0f1a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#07070B" />
     <meta name="description" content="JEE 2027 Master Lecture Planner - 392 lectures planned across Physics, Mathematics, and Chemistry" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="JEE Planner" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
-    <title>JEE 2027 — Lecture Planner</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='28' fill='%2307070B'/%3E%3Cpath d='M36 20h28v48c0 11 6 17 16 17s16-6 16-17V20h16v52c0 22-12 36-32 36S48 94 48 73V46H36z' fill='white'/%3E%3Cpath d='M56 27h29L70 52h11L50 101l7-34H45z' fill='%23FF2D3D'/%3E%3Cpath d='M30 109h68v6H30z' fill='%23FF2D3D'/%3E%3C/svg%3E" />
+    <title>JEE Planner</title>
+
+    <style>
+      html, body { margin: 0; min-height: 100%; background: #07070B; }
+      body { overflow: hidden; }
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(circle at 50% 42%, rgba(255,45,61,.10), transparent 32%),
+          linear-gradient(180deg, #0b0b11 0%, #07070B 100%);
+        transition: opacity 420ms ease, visibility 420ms ease;
+      }
+      #boot-splash.boot-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+      .boot-card { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+      .boot-mark {
+        width: 96px; height: 96px; border-radius: 26px;
+        filter: drop-shadow(0 18px 34px rgba(255,45,61,.16));
+        animation: boot-float 1.7s ease-in-out infinite, boot-in .65s cubic-bezier(.2,.8,.2,1) both;
+      }
+      .boot-title {
+        color: #fff; font: 800 22px/1.1 Inter, system-ui, sans-serif;
+        letter-spacing: .04em; opacity: 0;
+        animation: boot-title .55s .2s ease-out forwards;
+      }
+      .boot-subtitle {
+        color: rgba(255,255,255,.52); font: 500 12px/1 Inter, system-ui, sans-serif;
+        letter-spacing: .16em; text-transform: uppercase; opacity: 0;
+        animation: boot-title .55s .3s ease-out forwards;
+      }
+      .boot-line { width: 86px; height: 3px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.08); }
+      .boot-line::after { content: ''; display: block; width: 42%; height: 100%; border-radius: inherit; background: #FF2D3D; animation: boot-progress 1.15s ease-in-out infinite; }
+      @keyframes boot-in { from { opacity: 0; transform: scale(.78) rotate(-10deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+      @keyframes boot-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+      @keyframes boot-title { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes boot-progress { 0% { transform: translateX(-130%); } 100% { transform: translateX(330%); } }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-mark, .boot-title, .boot-subtitle, .boot-line::after { animation: none; }
+        .boot-title, .boot-subtitle { opacity: 1; }
+      }
+    </style>
   </head>
   <body>
+    <div id="boot-splash" aria-label="JEE Planner loading">
+      <div class="boot-card">
+        <svg class="boot-mark" viewBox="0 0 128 128" aria-hidden="true">
+          <rect width="128" height="128" rx="28" fill="#101017"/>
+          <path d="M36 20h28v48c0 11 6 17 16 17s16-6 16-17V20h16v52c0 22-12 36-32 36S48 94 48 73V46H36z" fill="#fff"/>
+          <path d="M56 27h29L70 52h11L50 101l7-34H45z" fill="#FF2D3D"/>
+          <path d="M30 109h68v6H30z" fill="#FF2D3D"/>
+        </svg>
+        <div class="boot-title">JEE Planner</div>
+        <div class="boot-subtitle">JEE 2027 · Study OS</div>
+        <div class="boot-line" aria-hidden="true"></div>
+      </div>
+    </div>
+
     <div id="root"></div>
+    <script>
+      window.__hideBootSplash = function () {
+        var splash = document.getElementById('boot-splash');
+        if (!splash) return;
+        splash.classList.add('boot-hidden');
+        window.setTimeout(function () { splash.remove(); document.body.style.overflow = ''; }, 500);
+      };
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
