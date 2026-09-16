@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Release tag to create (example: v1.3.5)'
+        description: 'Release tag to create (vMAJOR.MINOR.PATCH)'
         required: true
-        default: 'v1.3.5'
+        default: 'v1.5.2'
         type: string
 
 concurrency:
@@ -19,10 +19,63 @@ permissions:
   contents: write
 
 jobs:
+  prepare:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create release tag
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -e
+          case "$RELEASE_TAG" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "Invalid release tag: $RELEASE_TAG (use vMAJOR.MINOR.PATCH)"; exit 1 ;;
+          esac
+          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release tag already exists: $RELEASE_TAG"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "$RELEASE_TAG" "$GITHUB_SHA"
+          git push origin "$RELEASE_TAG"
+
+      - name: Export release version
+        id: version
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: [prepare]
+    if: always() && (needs.prepare.result == 'success' || needs.prepare.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve app version
+        id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -e
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            VERSION="${RELEASE_VERSION}"
+          else
+            VERSION="dev"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building JEE Planner version: $VERSION"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -37,6 +90,8 @@ jobs:
         run: node test-engine.mjs
 
       - name: Build (premium bundle + PWA)
+        env:
+          VITE_APP_VERSION: ${{ steps.version.outputs.version }}
         run: npm run build
 
       - name: Smoke test — built bundle + manifest + splash
@@ -60,31 +115,28 @@ jobs:
           retention-days: 14
 
   apk:
-    needs: build
+    needs: [prepare, build]
+    if: always() && needs.build.result == 'success' && (needs.prepare.result == 'success' || needs.prepare.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Create release tag (manual run only)
-        if: github.event_name == 'workflow_dispatch'
+      - name: Resolve app version
+        id: version
         env:
+          EVENT_NAME: ${{ github.event_name }}
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           set -e
-          case "$RELEASE_TAG" in
-            v[0-9]*.[0-9]*.[0-9]*) ;;
-            *) echo "Invalid release tag: $RELEASE_TAG (use vMAJOR.MINOR.PATCH)"; exit 1 ;;
-          esac
-          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "Release tag already exists: $RELEASE_TAG"
-            exit 1
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            VERSION_NAME="$RELEASE_TAG"
+          else
+            VERSION_NAME="dev"
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag "$RELEASE_TAG" "$GITHUB_SHA"
-          git push origin "$RELEASE_TAG"
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "Building Android versionName: $VERSION_NAME"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -102,6 +154,8 @@ jobs:
         run: npm ci
 
       - name: Build web bundle
+        env:
+          VITE_APP_VERSION: ${{ needs.prepare.outputs.version || 'dev' }}
         run: npm run build
 
       - name: Sync Capacitor
@@ -120,7 +174,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          APP_VERSION_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+          APP_VERSION_NAME: ${{ steps.version.outputs.version_name }}
         run: ./gradlew clean assembleRelease
 
       - name: Verify signed APK
@@ -135,7 +189,7 @@ jobs:
       - name: Name release APK
         working-directory: android
         env:
-          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || 'dev' }}
         run: |
           set -e
           mkdir -p app/build/outputs/apk/release/named
