@@ -26,15 +26,8 @@ export default function Sidebar({ mobile }) {
     return () => window.removeEventListener('jee-planner-toggle-desktop-sidebar', toggle);
   }, []);
 
-  const visible = mobile || desktopVisible;
-
   return (
-    <aside className={`
-      ${mobile ? 'h-full' : `${visible ? 'flex' : 'hidden'} lg:flex`}
-      fixed top-0 left-0 h-screen w-[var(--sidebar-width)] flex-col
-      bg-white dark:bg-[#1a1c2b] border-r border-[var(--color-border)] dark:border-[#2c2f40]
-      z-50 transition-all duration-200
-    `}>
+    <aside className={`${mobile ? 'flex h-full' : desktopVisible ? 'hidden lg:flex' : 'hidden'} fixed top-0 left-0 h-screen w-[var(--sidebar-width)] flex-col bg-white dark:bg-[#1a1c2b] border-r border-[var(--color-border)] dark:border-[#2c2f40] z-50 transition-all duration-200`}>
       <div className="p-5 border-b border-[var(--color-border)] dark:border-[#2c2f40]">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-500/25">JEE</div>
