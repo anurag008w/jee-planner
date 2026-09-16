@@ -8,11 +8,13 @@
 //  6. HARD DISPLAYED-PHASE CAP = Phase 1→2, Phase 2→3, Phase 3→4, Phase 4→5 cards/day.
 //  7. HARD EFFORT CAP = Phase 1→2, Phase 2→3, Phase 3→4, Phase 4→5 effort units/day.
 //  8. One-shot chapters weigh 0.5 effort units but still count as one displayed card.
-//  9. Sequence invariant: within subject + chemistry branch + chapter, the next
-//     incomplete lecture must be scheduled before any later incomplete lecture.
-//     This is enforced while selecting, never by a later date-shift.
-// 10. TODAY never pulls future lectures and stays stable when completion actions freeze it.
-// 11. Safety/overflow logic also obeys the exact same hard limits.
+//  9. HARD LECTURE ORDER = within subject + chemistry branch + chapter,
+//     the next incomplete lecture must be scheduled before any later one.
+// 10. HARD CHAPTER CONTINUITY = within each subject + chemistry branch track,
+//     the next chapter cannot start until the current chapter's incomplete
+//     lectures are exhausted. This prevents Solutions → Chemical Kinetics jumps.
+// 11. TODAY never pulls future lectures and stays stable when completion actions freeze it.
+// 12. Safety/overflow logic obeys the same hard limits and sequence/chapter rules.
 // Data integrity: dataset dates/text/faculty are never mutated; only resolvedDate is computed.
 // ---------------------------------------------------------------------------
 import { getLectureLoad } from '../data/chapterStrategy.js';
@@ -84,6 +86,8 @@ export function computeResolvedSchedule(args) {
   const effPhase = (lecture) => options.chapterPhases?.[lecture.chapterName] || lecture.phase;
   const seriesKey = (lecture) =>
     [lecture.subject, lecture.chemistryBranch || '', lecture.chapterName].join('::');
+  const trackKey = (lecture) =>
+    [lecture.subject, lecture.chemistryBranch || ''].join('::');
 
   const sortedLectures = [...lectures].sort((a, b) =>
     a.newStudyDate === b.newStudyDate
@@ -168,9 +172,9 @@ export function computeResolvedSchedule(args) {
     };
   }
 
-  // Build one ordered series at a time. Completed lectures are already removed, so
-  // each series starts at its next incomplete lecture and advances only after pick.
   const pool = sortedLectures.filter((lecture) => !completed(lecture.id));
+
+  // One ordered lecture series per chapter.
   const seriesLists = {};
   pool.forEach((lecture) => {
     const key = seriesKey(lecture);
@@ -179,16 +183,64 @@ export function computeResolvedSchedule(args) {
   });
   Object.values(seriesLists).forEach((series) => series.sort(lectureOrder));
 
+  // Chapters are also ordered within each subject/chemistry branch track.
+  // The first chapter is the earliest chapter represented by the remaining pool;
+  // subsequent chapters are unlocked only after every incomplete lecture in the
+  // current chapter has been consumed.
+  const chapterLists = {};
+  Object.entries(seriesLists).forEach(([key, series]) => {
+    const firstLecture = series[0];
+    if (!firstLecture) return;
+    const track = trackKey(firstLecture);
+    if (!chapterLists[track]) chapterLists[track] = [];
+    chapterLists[track].push({ key, chapterName: firstLecture.chapterName, firstLecture });
+  });
+  Object.values(chapterLists).forEach((chapters) => {
+    chapters.sort((a, b) =>
+      a.firstLecture.newStudyDate.localeCompare(b.firstLecture.newStudyDate)
+      || (Number(a.firstLecture.slot) || 0) - (Number(b.firstLecture.slot) || 0)
+      || a.firstLecture.id - b.firstLecture.id
+    );
+  });
+
+  const activeChapterIndex = new Map();
+  Object.entries(chapterLists).forEach(([track, chapters]) => {
+    activeChapterIndex.set(track, chapters.length ? 0 : -1);
+  });
+
   const seriesNextId = new Map();
   Object.entries(seriesLists).forEach(([key, series]) => {
     seriesNextId.set(key, series[0]?.id ?? null);
   });
 
-  const isSequenceEligible = (lecture) => seriesNextId.get(seriesKey(lecture)) === lecture.id;
+  const isChapterActive = (lecture) => {
+    const track = trackKey(lecture);
+    const chapters = chapterLists[track] || [];
+    const index = activeChapterIndex.get(track);
+    return index >= 0 && chapters[index]?.key === seriesKey(lecture);
+  };
+
+  const isSequenceEligible = (lecture) =>
+    isChapterActive(lecture) && seriesNextId.get(seriesKey(lecture)) === lecture.id;
+
   const advanceSeries = (lecture) => {
-    const series = seriesLists[seriesKey(lecture)] || [];
+    const key = seriesKey(lecture);
+    const series = seriesLists[key] || [];
     const index = series.findIndex((item) => item.id === lecture.id);
-    seriesNextId.set(seriesKey(lecture), series[index + 1]?.id ?? null);
+    if (index < 0) return;
+
+    const nextId = series[index + 1]?.id ?? null;
+    seriesNextId.set(key, nextId);
+
+    // Current chapter is exhausted exactly when this was its last incomplete lecture.
+    if (!nextId) {
+      const track = trackKey(lecture);
+      const chapters = chapterLists[track] || [];
+      const currentIndex = activeChapterIndex.get(track);
+      if (currentIndex >= 0 && chapters[currentIndex]?.key === key) {
+        activeChapterIndex.set(track, currentIndex + 1 < chapters.length ? currentIndex + 1 : -1);
+      }
+    }
   };
 
   const totalEffortUnits = pool.reduce((sum, lecture) => sum + getLectureLoad(lecture), 0);
@@ -246,10 +298,10 @@ export function computeResolvedSchedule(args) {
         if (selectedSet.has(lecture.id)) return false;
         if (!pool.includes(lecture)) return false;
         if (!isSequenceEligible(lecture)) return false;
-        if ((subjectCounts[lecture.subject] || 0) >= 2) return false; // HARD: max 2/subject/day
+        if ((subjectCounts[lecture.subject] || 0) >= 2) return false;
         if (!phaseCountOk(lecture)) return false;
         const load = getLectureLoad(lecture);
-        if (dayLoad[date] + load > cap + EPS) return false; // HARD effort cap
+        if (dayLoad[date] + load > cap + EPS) return false;
         return predicate(lecture);
       });
 
@@ -267,14 +319,12 @@ export function computeResolvedSchedule(args) {
       return true;
     };
 
-    // Pass 1: subject diversity. Every pick still passes ALL hard limits above.
     let guard = 0;
     const distinctTarget = Math.min(distinctTargetFor(date), cap);
     while (selected.length < distinctTarget && selected.length < cap && dayLoad[date] < cap - EPS && guard++ < 100) {
       if (!pick((lecture) => (subjectCounts[lecture.subject] || 0) === 0)) break;
     }
 
-    // Pass 2: fill remaining capacity. The same HARD subject/phase/effort caps remain active.
     guard = 0;
     while (selected.length < cap && dayLoad[date] < cap - EPS && guard++ < 100) {
       if (!pick(() => true)) break;
@@ -288,8 +338,9 @@ export function computeResolvedSchedule(args) {
     });
   }
 
-  // Absolute safety net. Even an extreme overflow is distributed over new dates
-  // using the SAME hard max-2-subject, phase-card, and effort limits.
+  // Absolute safety net. This should be unreachable for the current dataset,
+  // but even extreme overflow continues through the SAME active chapter state
+  // and hard caps rather than blindly shifting pool[0] into a date.
   if (pool.length > 0) {
     let cursor = new Date(end);
     let overflowDate = toISODate(cursor);
@@ -302,32 +353,31 @@ export function computeResolvedSchedule(args) {
     };
 
     while (pool.length > 0) {
-      const lecture = pool[0];
-      const phase = effPhase(lecture) || 'Phase 4';
-      const load = getLectureLoad(lecture);
-      const phaseLimit = PHASE_CAP[phase] ?? DEFAULT_CAP;
-      const subjectCount = counts.subjects[lecture.subject] || 0;
-      const phaseCount = counts.phases[phase] || 0;
+      const candidate = pool.find((lecture) =>
+        isSequenceEligible(lecture)
+        && (counts.subjects[lecture.subject] || 0) < 2
+        && (counts.phases[effPhase(lecture) || 'Phase 4'] || 0) < (PHASE_CAP[effPhase(lecture) || 'Phase 4'] ?? DEFAULT_CAP)
+        && counts.effort + getLectureLoad(lecture) <= DEFAULT_CAP + EPS
+        && counts.total < DEFAULT_CAP
+      );
 
-      if (
-        counts.total >= DEFAULT_CAP
-        || counts.effort + load > DEFAULT_CAP + EPS
-        || subjectCount >= 2
-        || phaseCount >= phaseLimit
-      ) {
+      if (!candidate) {
         resetOverflowDay();
         continue;
       }
 
-      pool.shift();
+      const phase = effPhase(candidate) || 'Phase 4';
+      const load = getLectureLoad(candidate);
+      pool.splice(pool.indexOf(candidate), 1);
       counts.total += 1;
       counts.effort += load;
-      counts.subjects[lecture.subject] = subjectCount + 1;
-      counts.phases[phase] = phaseCount + 1;
-      resolved[lecture.id] = {
+      counts.subjects[candidate.subject] = (counts.subjects[candidate.subject] || 0) + 1;
+      counts.phases[phase] = (counts.phases[phase] || 0) + 1;
+      resolved[candidate.id] = {
         resolvedDate: overflowDate,
-        isBacklog: lecture.newStudyDate < today,
+        isBacklog: candidate.newStudyDate < today,
       };
+      advanceSeries(candidate);
     }
   }
 
