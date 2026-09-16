@@ -1,7 +1,7 @@
 {
   "name": "jee-lecture-planner",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.5.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -19,8 +19,7 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.1",
-    "@tailwindcss/vite": "^4.0.0",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@tailwindcss/vite": "^4.3.4",
     "tailwindcss": "^4.0.0",
     "vite": "^6.0.5",
     "vite-plugin-pwa": "^1.3.0"
