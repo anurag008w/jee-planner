@@ -31,13 +31,9 @@ export function shiftLecturesToStartDate(lectures, originalStartDate, startDate)
   }));
 }
 
-export function shiftSundayOffDays(offDays, originalStartDate, startDate) {
-  const deltaDays = dateDiffInDays(originalStartDate, startDate);
+export function shiftSundayOffDays(offDays, deltaDays) {
   if (!deltaDays) return offDays;
-  // Default Sunday entries are shifted with the schedule. Fixed-date holidays
-  // and explicitly added non-Sunday off-days remain real calendar dates.
-  return offDays.map((date) => {
-    const day = parseDate(date).getDay();
-    return day === 0 ? shiftISODate(date, deltaDays) : date;
-  });
+  return offDays.map((date) => (
+    parseDate(date).getDay() === 0 ? shiftISODate(date, deltaDays) : date
+  ));
 }
