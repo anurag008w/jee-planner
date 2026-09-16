@@ -9,16 +9,17 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>,
 )
 
-// Branded startup splash: keep it visible for four seconds from app boot,
-// then fade it out after React has had a chance to paint.
-const BOOT_SPLASH_DURATION_MS = 4000
+// Branded startup splash: the full visible + fade-out startup experience is ~4 seconds.
+// Keep this timer independent of React paint so the splash never flashes away early.
+const BOOT_SPLASH_TOTAL_MS = 4000
+const BOOT_SPLASH_FADE_MS = 420
 window.setTimeout(() => {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       window.__hideBootSplash?.()
     })
   })
-}, BOOT_SPLASH_DURATION_MS)
+}, BOOT_SPLASH_TOTAL_MS - BOOT_SPLASH_FADE_MS)
 
 // ----- PWA: in-place auto-update (same app, no reinstall) -----
 if ('serviceWorker' in navigator) {
