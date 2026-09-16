@@ -3,17 +3,88 @@ import { persist } from 'zustand/middleware';
 import dataset from '../data/dataset.json';
 import { computeResolvedSchedule, getSundaysBetween, COMMON_HOLIDAYS } from './scheduleEngine';
 import { getToday } from '../utils/helpers';
+import { dateDiffInDays, shiftLecturesToStartDate, shiftSundayOffDays } from './scheduleDateUtils';
 
 // Default off days = every Sunday inside the schedule span
 //                 + the 9 toggle-based common holidays (14 Sep, 2 Oct, 20 Oct, 6/7/9/11/16 Nov, 25 Dec)
 const scheduleDates = [...new Set(dataset.lectures.map(l => l.newStudyDate))].sort();
+const ORIGINAL_START_DATE = scheduleDates[0];
+const ORIGINAL_END_DATE = scheduleDates[scheduleDates.length - 1];
 const defaultSundayOffs = getSundaysBetween(scheduleDates[0], scheduleDates[scheduleDates.length - 1]);
 const commonHolidayDates = COMMON_HOLIDAYS.map(h => h.date).filter(d => d >= scheduleDates[0] && d <= scheduleDates[scheduleDates.length - 1]);
 const defaultOffDays = [...new Set([...defaultSundayOffs, ...commonHolidayDates])].sort();
 
-const computeSchedule = (completions, settings) =>
-  computeResolvedSchedule({
-    lectures: dataset.lectures,
+const seriesKey = (lecture) => [lecture.subject, lecture.chemistryBranch || '', lecture.chapterName].join('::');
+
+// Final integrity pass: a lecture can never resolve before an earlier lecture
+// in the same subject/chapter series. This protects the displayed schedule from
+// ordering regressions caused by backlog/adaptive-capacity calculations.
+const enforceLectureOrder = (schedule, lectures, completions) => {
+  const bySeries = {};
+  lectures.forEach((lecture) => {
+    if (completions[lecture.id] === 'completed') return;
+    const key = seriesKey(lecture);
+    if (!bySeries[key]) bySeries[key] = [];
+    bySeries[key].push(lecture);
+  });
+
+  Object.values(bySeries).forEach((series) => {
+    series.sort((a, b) => {
+      const an = Number(a.lectureNumber) || Number.MAX_SAFE_INTEGER;
+      const bn = Number(b.lectureNumber) || Number.MAX_SAFE_INTEGER;
+      return an - bn || a.newStudyDate.localeCompare(b.newStudyDate) || (a.slot || 0) - (b.slot || 0) || a.id - b.id;
+    });
+
+    let previousDate = null;
+    series.forEach((lecture) => {
+      const current = schedule.resolved[lecture.id];
+      if (!current) return;
+      if (previousDate && current.resolvedDate < previousDate) {
+        current.resolvedDate = previousDate;
+        current.isBacklog = lecture.newStudyDate < previousDate;
+      }
+      previousDate = current.resolvedDate;
+    });
+  });
+
+  // Rebuild dayMap from the corrected resolved dates so the UI can never show
+  // a later lecture on an earlier day than its own previous lecture.
+  const rebuilt = {};
+  Object.entries(schedule.resolved).forEach(([id, meta]) => {
+    const lecture = lectures.find(l => String(l.id) === String(id));
+    if (!lecture || completions[lecture.id] === 'completed') return;
+    const oldItem = Object.values(schedule.dayMap).flat().find(l => l.id === lecture.id);
+    const item = {
+      ...lecture,
+      phase: oldItem?.phase || lecture.phase,
+      isBacklog: meta.isBacklog,
+      resolvedDate: meta.resolvedDate,
+    };
+    if (!rebuilt[meta.resolvedDate]) rebuilt[meta.resolvedDate] = [];
+    rebuilt[meta.resolvedDate].push(item);
+  });
+
+  Object.values(rebuilt).forEach((items) => {
+    items.sort((a, b) => {
+      const ak = seriesKey(a);
+      const bk = seriesKey(b);
+      if (ak === bk) {
+        return (Number(a.lectureNumber) || 0) - (Number(b.lectureNumber) || 0)
+          || (a.slot || 0) - (b.slot || 0);
+      }
+      return (a.slot || 0) - (b.slot || 0) || a.id - b.id;
+    });
+  });
+
+  schedule.dayMap = rebuilt;
+  return schedule;
+};
+
+const computeSchedule = (completions, settings) => {
+  const startDate = settings.startDate || ORIGINAL_START_DATE;
+  const scheduledLectures = shiftLecturesToStartDate(dataset.lectures, ORIGINAL_START_DATE, startDate);
+  const schedule = computeResolvedSchedule({
+    lectures: scheduledLectures,
     completions,
     today: settings.previewDate || getToday(),
     offDays: settings.offDays,
@@ -21,12 +92,15 @@ const computeSchedule = (completions, settings) =>
     phaseRanges: settings.phaseRanges,
     chapterPhases: settings.chapterPhases,
   });
+  return enforceLectureOrder(schedule, scheduledLectures, completions);
+};
 
 const useStore = create(
   persist(
     (set, get) => {
       const initialSettings = {
         offDays: defaultOffDays,
+        startDate: ORIGINAL_START_DATE,
         previewDate: '',
         autoShift: true,
         phaseRanges: null,
@@ -171,6 +245,27 @@ const useStore = create(
           set((s) => ({ settings: { ...s.settings, previewDate: date } }));
           get().recompute();
         },
+        setStartDate: (date) => {
+          if (!date) return;
+          set((s) => {
+            const previousStartDate = s.settings.startDate || ORIGINAL_START_DATE;
+            const offDays = shiftSundayOffDays(
+              s.settings.offDays || [],
+              ORIGINAL_START_DATE,
+              ORIGINAL_END_DATE,
+              previousStartDate,
+              date,
+            );
+            return {
+              settings: {
+                ...s.settings,
+                startDate: date,
+                offDays,
+              },
+            };
+          });
+          get().recompute();
+        },
         setAutoShift: (value) => {
           set((s) => ({ settings: { ...s.settings, autoShift: value } }));
           get().recompute();
@@ -227,6 +322,7 @@ const useStore = create(
             theme: parsed.theme === 'dark' ? 'dark' : 'light',
             settings: {
               offDays: [...new Set(offDays)].sort(),
+              startDate: parsed.settings?.startDate || ORIGINAL_START_DATE,
               previewDate: parsed.settings?.previewDate || '',
               autoShift: parsed.settings?.autoShift !== false,
               phaseRanges: parsed.settings?.phaseRanges || null,
@@ -246,13 +342,14 @@ const useStore = create(
         sync: state.sync,
         settings: {
           offDays: state.settings.offDays,
+          startDate: state.settings.startDate,
           previewDate: state.settings.previewDate,
           autoShift: state.settings.autoShift,
           phaseRanges: state.settings.phaseRanges,
           chapterPhases: state.settings.chapterPhases,
         },
       }),
-      version: 4,
+      version: 5,
       migrate: (persisted) => {
         const base = persisted || {};
         const prevOffDays = base.settings?.offDays || [];
@@ -261,6 +358,7 @@ const useStore = create(
         const mergedOffDays = [...new Set([...prevOffDays, ...commonHolidayDates])].sort();
         const mergedSettings = {
           offDays: mergedOffDays,
+          startDate: base.settings?.startDate || ORIGINAL_START_DATE,
           previewDate: base.settings?.previewDate || '',
           autoShift: base.settings?.autoShift !== false,
           phaseRanges: base.settings?.phaseRanges || null,
