@@ -1,26 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-<defs>
-<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-<stop offset="0" stop-color="#6366f1"/>
-<stop offset="0.55" stop-color="#8b5cf6"/>
-<stop offset="1" stop-color="#a855f7"/>
-</linearGradient>
-<linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
-<stop offset="0" stop-color="#ffffff" stop-opacity="0.4"/>
-<stop offset="0.45" stop-color="#ffffff" stop-opacity="0.06"/>
-<stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
-<stop offset="1" stop-color="#000000" stop-opacity="0.08"/>
-</linearGradient>
-<linearGradient id="glyph" x1="0" y1="0" x2="秀" y2="秀">
-<stop offset="0" stop-color="#ffffff"/>
-<stop offset="1" stop-color="#e9d5ff"/>
-</linearGradient>
-</defs>
-<rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#bg)"/>
-<rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#gloss)"/>
-<text x="512" y="700" text-anchor="middle" font-family="'Inter','Segoe UI',system-ui,sans-serif"
-      font-weight="900" font-size="480" fill="#ffffff" style="letter-spacing:-18px">J</text>
-<circle cx="742" cy="252" r="7" fill="#fde68a"/>
-<circle cx="356" cy="236" r="4" fill="#fde68a" opacity="0.8"/>
-<path d="M742 224c-4-38-52-40-54-4" stroke="#fde68a" stroke-width="16" stroke-linecap="round" fill="none" opacity="0.9"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" fill="#07070B"/>
+  <circle cx="512" cy="512" r="438" fill="#101017" stroke="#25252F" stroke-width="12"/>
+  <path d="M305 190h165v350c0 82 39 121 106 121s106-39 106-121V190h116v363c0 145-86 243-222 243S354 698 354 553V383h-49z" fill="#fff"/>
+  <path d="M488 245h226L592 472h97L385 815l57-235h-76z" fill="#FF2D3D"/>
+  <rect x="268" y="846" width="488" height="30" rx="15" fill="#FF2D3D"/>
 </svg>
