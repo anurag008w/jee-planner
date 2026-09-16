@@ -92,17 +92,31 @@ const server = createServer(async (req, res) => {
     res.end('Forbidden');
     return;
   }
+  // Cache policy — "latest wala hamesha mile":
+  //   index.html + sw.js → NO cache (har launch par fresh check)
+  //   hashed /assets/*   → browser cache OK (filename badalne par naya hi milega)
+  const isHtml = pathname === '/' || pathname === '/index.html' || !extname(pathname);
+  const isSW = pathname === '/sw.js';
+  const cacheHeader = isHtml || isSW
+    ? (isSW ? 'no-store' : 'no-cache')
+    : 'public, max-age=31536000, immutable';
   try {
     const st = await stat(filePath);
     if (st.isDirectory()) filePath = join(filePath, 'index.html');
     const ext = extname(filePath);
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+    res.writeHead(200, {
+      'Content-Type': MIME[ext] || 'application/octet-stream',
+      'Cache-Control': cacheHeader,
+    });
     createReadStream(filePath).pipe(res);
   } catch {
     try {
       const idx = join(DIST, 'index.html');
       await stat(idx);
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-cache',
+      });
       createReadStream(idx).pipe(res);
     } catch {
       res.writeHead(500);
