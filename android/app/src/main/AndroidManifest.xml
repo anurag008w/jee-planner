@@ -3,9 +3,9 @@
 
     <application android:usesCleartextTraffic="true"
         android:allowBackup="true"
-        android:icon="@drawable/jee_planner_icon"
+        android:icon="@mipmap/jee_planner_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@drawable/jee_planner_icon"
+        android:roundIcon="@mipmap/jee_planner_launcher"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
@@ -34,8 +34,6 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
     </application>
-
-    <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
 </manifest>
