@@ -181,8 +181,9 @@ const useStore = create(
 
         // ----- schedule engine -----
         // freezeToday = true sirf completion actions se aata hai → aaj ke plan ko
-        // FREEZE rakho (complete karne par naya lecture kabhi nahi aata, list ghatti
-        // hai). Settings/offday/phase changes se fresh recompute hota hai.
+        // FREEZE rakho. Completing a lecture updates only its status; it stays in
+        // today's visible plan so the user can see the completed work and tick.
+        // No replacement lecture is injected into today's frozen list.
         recompute: (opts = {}) => {
           const s = get();
           const today = s.settings.previewDate || getToday();
@@ -191,10 +192,13 @@ const useStore = create(
           if (opts.freezeToday) {
             const prevPlan = (s.schedule && s.schedule.today === today && s.schedule.dayMap && s.schedule.dayMap[today]) || [];
             if (prevPlan.length > 0) {
-              const frozen = prevPlan.filter(l => s.completions[l.id] !== 'completed');
+              const frozen = prevPlan;
               schedule.dayMap[today] = frozen;
               frozen.forEach(l => {
-                schedule.resolved[l.id] = { resolvedDate: today, isBacklog: l.newStudyDate < today };
+                schedule.resolved[l.id] = {
+                  resolvedDate: today,
+                  isBacklog: l.newStudyDate < today,
+                };
               });
             }
           }
