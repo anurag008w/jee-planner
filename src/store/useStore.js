@@ -92,18 +92,52 @@ const enforceLectureOrder = (schedule, lectures, completions) => {
 
 const computeSchedule = (completions, settings, extraLectureCounts = {}) => {
   const startDate = settings.startDate || ORIGINAL_START_DATE;
+  const today = settings.previewDate || getToday();
   const combinedLectures = buildLecturesWithExtras(dataset.lectures, extraLectureCounts);
   const scheduledLectures = shiftLecturesToStartDate(combinedLectures, ORIGINAL_START_DATE, startDate);
+
+  // A lecture that was already marked complete before the start-date shift can
+  // legitimately become part of today's shifted plan. It must still reserve its
+  // place in today's plan and remain visible, rather than disappearing because
+  // completion filtering removes it from the scheduler output.
+  const completedToday = scheduledLectures
+    .filter((lecture) => completions[lecture.id] === 'completed' && lecture.newStudyDate === today)
+    .map((lecture) => ({ ...lecture, isBacklog: false, resolvedDate: today }));
+  const completedTodayIds = new Set(completedToday.map((lecture) => lecture.id));
+  const schedulerCompletions = { ...completions };
+  completedTodayIds.forEach((id) => { delete schedulerCompletions[id]; });
+
   const schedule = computeResolvedSchedule({
     lectures: scheduledLectures,
-    completions,
-    today: settings.previewDate || getToday(),
+    completions: schedulerCompletions,
+    today,
     offDays: settings.offDays,
     autoShift: settings.autoShift,
     phaseRanges: settings.phaseRanges,
     chapterPhases: settings.chapterPhases,
   });
-  return enforceLectureOrder(schedule, scheduledLectures, completions);
+
+  const enforced = enforceLectureOrder(schedule, scheduledLectures, completions);
+
+  if (completedToday.length > 0) {
+    const existing = enforced.dayMap[today] || [];
+    const existingIds = new Set(existing.map((lecture) => String(lecture.id)));
+    const merged = [
+      ...existing,
+      ...completedToday.filter((lecture) => !existingIds.has(String(lecture.id))),
+    ];
+    merged.sort((a, b) =>
+      (Number(a.slot) || 0) - (Number(b.slot) || 0)
+      || (Number(a.lectureNumber) || 0) - (Number(b.lectureNumber) || 0)
+      || compareLectureIds(a.id, b.id)
+    );
+    enforced.dayMap[today] = merged;
+    completedToday.forEach((lecture) => {
+      enforced.resolved[lecture.id] = { resolvedDate: today, isBacklog: false };
+    });
+  }
+
+  return enforced;
 };
 
 const useStore = create(
