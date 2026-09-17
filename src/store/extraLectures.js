@@ -10,6 +10,13 @@ export function getExtraLectureSeriesKey(lecture) {
   return [lecture.subject, lecture.chemistryBranch || '', lecture.chapterName].join('::');
 }
 
+export const compareLectureIds = (a, b) => {
+  const an = Number(a);
+  const bn = Number(b);
+  if (Number.isFinite(an) && Number.isFinite(bn)) return an - bn;
+  return String(a).localeCompare(String(b));
+};
+
 function stableHash(value) {
   let hash = 2166136261;
   for (let i = 0; i < value.length; i += 1) {
@@ -53,7 +60,7 @@ export function buildLecturesWithExtras(baseLectures, counts) {
       (Number(a.lectureNumber) || Number.MAX_SAFE_INTEGER) - (Number(b.lectureNumber) || Number.MAX_SAFE_INTEGER)
       || String(a.newStudyDate).localeCompare(String(b.newStudyDate))
       || (Number(a.slot) || 0) - (Number(b.slot) || 0)
-      || Number(a.id) - Number(b.id)
+      || compareLectureIds(a.id, b.id)
     );
     const last = ordered[ordered.length - 1];
     const lastNumber = Math.max(...ordered.map((lecture) => Number(lecture.lectureNumber) || 0), 0);
