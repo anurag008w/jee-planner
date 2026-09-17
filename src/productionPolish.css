@@ -1,0 +1,268 @@
+/*
+ * Production UI polish layer.
+ * Keeps existing page markup and behavior intact while tightening the
+ * visual system, improving light-mode contrast, and making mobile layouts
+ * calmer and easier to scan.
+ */
+
+:root {
+  --ui-bg-light: #f6f7fb;
+  --ui-surface-light: #ffffff;
+  --ui-surface-soft-light: #f8fafc;
+  --ui-text-light: #172033;
+  --ui-muted-light: #667085;
+  --ui-subtle-light: #7b8496;
+  --ui-border-light: #e5e7eb;
+  --ui-border-soft-light: #edf0f4;
+  --ui-bg-dark: #0d0f1a;
+  --ui-surface-dark: #181b28;
+  --ui-surface-soft-dark: #202333;
+  --ui-border-dark: rgba(255, 255, 255, .085);
+  --ui-shadow-light: 0 1px 2px rgba(15, 23, 42, .04), 0 10px 28px -18px rgba(15, 23, 42, .18);
+  --ui-shadow-dark: 0 1px 2px rgba(0, 0, 0, .28), 0 12px 30px -18px rgba(0, 0, 0, .5);
+}
+
+/* ── Light mode: explicit contrast instead of relying on Tailwind grays ── */
+:root:not(.dark) body,
+:root:not(.dark) #root {
+  background: var(--ui-bg-light);
+  color: var(--ui-text-light);
+}
+
+:root:not(.dark) .text-gray-900 { color: #111827; }
+:root:not(.dark) .text-gray-800 { color: #1f2937; }
+:root:not(.dark) .text-gray-700 { color: #344054; }
+:root:not(.dark) .text-gray-600 { color: #475467; }
+:root:not(.dark) .text-gray-500 { color: var(--ui-muted-light); }
+:root:not(.dark) .text-gray-400 { color: var(--ui-subtle-light); }
+:root:not(.dark) .text-gray-300 { color: #667085; }
+:root:not(.dark) .text-gray-200 { color: #475467; }
+
+:root:not(.dark) .border-gray-100 { border-color: var(--ui-border-soft-light); }
+:root:not(.dark) .border-gray-200 { border-color: var(--ui-border-light); }
+:root:not(.dark) .bg-gray-50 { background-color: var(--ui-surface-soft-light); }
+:root:not(.dark) .bg-gray-100 { background-color: #f1f3f6; }
+
+:root:not(.dark) input,
+:root:not(.dark) select,
+:root:not(.dark) textarea,
+:root:not(.dark) button {
+  color-scheme: light;
+}
+
+/* ── Surfaces ─────────────────────────────────────────────────────────── */
+.card-surface {
+  border-radius: 18px;
+  box-shadow: var(--ui-shadow-light);
+}
+.dark .card-surface {
+  background: var(--ui-surface-dark);
+  border-color: var(--ui-border-dark);
+  box-shadow: var(--ui-shadow-dark);
+}
+
+.dark .bg-gray-50 { background-color: rgba(255, 255, 255, .035); }
+.dark .bg-gray-100 { background-color: rgba(255, 255, 255, .06); }
+
+/* Reduce the “nested box” feeling without changing the information. */
+.card-surface .card-surface {
+  box-shadow: none;
+  border-color: var(--ui-border-soft-light);
+}
+.dark .card-surface .card-surface {
+  border-color: rgba(255, 255, 255, .055);
+}
+
+/* ── Header / navigation ──────────────────────────────────────────────── */
+header.sticky {
+  border-bottom-color: rgba(226, 232, 240, .82);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, .025);
+}
+.dark header.sticky {
+  border-bottom-color: rgba(255, 255, 255, .065);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .18);
+}
+
+@media (max-width: 640px) {
+  header.sticky > div {
+    height: 58px;
+  }
+
+  main {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    padding-top: 12px !important;
+  }
+
+  main > .space-y-6,
+  main > .animate-fadeIn.space-y-6 {
+    gap: 14px;
+  }
+}
+
+/* ── Mobile nav: quieter, more deliberate active state ───────────────── */
+nav[aria-label="Primary"] {
+  border-top-color: rgba(226, 232, 240, .9);
+  box-shadow: 0 -8px 24px rgba(15, 23, 42, .06);
+}
+.dark nav[aria-label="Primary"] {
+  border-top-color: rgba(255, 255, 255, .075);
+  box-shadow: 0 -10px 24px rgba(0, 0, 0, .28);
+}
+
+nav[aria-label="Primary"] button {
+  min-height: 46px;
+  transition: color .18s ease, background-color .18s ease, transform .18s ease;
+}
+
+nav[aria-label="Primary"] button[aria-current="page"] {
+  background: rgba(99, 102, 241, .075);
+}
+.dark nav[aria-label="Primary"] button[aria-current="page"] {
+  background: rgba(129, 140, 248, .09);
+}
+
+/* ── Buttons / controls ───────────────────────────────────────────────── */
+.btn {
+  min-height: 40px;
+}
+
+.btn-primary {
+  box-shadow: 0 8px 18px -10px rgba(79, 70, 229, .62);
+}
+
+.btn-secondary {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .03);
+}
+
+.btn-secondary:hover {
+  background: var(--ui-surface-light);
+}
+.dark .btn-secondary:hover {
+  background: rgba(255, 255, 255, .065);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+  transform: none;
+}
+
+.field {
+  min-height: 44px;
+  border-radius: 12px;
+  background: var(--ui-surface-light);
+}
+.dark .field {
+  background: #161923;
+}
+
+.field:hover {
+  border-color: #cbd5e1;
+}
+.dark .field:hover {
+  border-color: rgba(255, 255, 255, .15);
+}
+
+/* Native date controls can disappear into a dark surface on Android. */
+.dark input[type="date"],
+.dark input[type="month"],
+.dark input[type="time"] {
+  color-scheme: dark;
+}
+
+/* ── Typography hierarchy ─────────────────────────────────────────────── */
+.page-title {
+  letter-spacing: -0.025em;
+}
+
+.page-sub {
+  line-height: 1.55;
+}
+
+/* Avoid ultra-small helper text becoming unreadable on high-density screens. */
+@media (max-width: 640px) {
+  .text-\[10px\],
+  .text-\[10\.5px\],
+  .text-\[11px\] {
+    line-height: 1.35;
+  }
+
+  .text-\[10px\] { font-size: 10.5px; }
+  .text-\[10\.5px\] { font-size: 11px; }
+  .text-\[11px\] { font-size: 11.5px; }
+}
+
+/* ── Progress bars ────────────────────────────────────────────────────── */
+.progress-track {
+  min-height: 8px;
+}
+
+/* ── Mobile card density ──────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .card-surface.p-5 { padding: 16px; }
+  .card-surface.p-6 { padding: 18px; }
+
+  .card-surface.rounded-2xl,
+  .card-surface.rounded-xl {
+    border-radius: 18px;
+  }
+
+  /* Give settings date controls enough width without overflowing. */
+  .card-surface .field.w-auto {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+}
+
+/* ── Settings polish ──────────────────────────────────────────────────── */
+main > .animate-fadeIn > section.card-surface {
+  overflow: hidden;
+}
+
+main > .animate-fadeIn > section.card-surface > div > .border-b:last-child {
+  border-bottom-color: transparent;
+}
+
+@media (max-width: 640px) {
+  main > .animate-fadeIn > section.card-surface {
+    padding-top: 17px;
+    padding-bottom: 17px;
+  }
+
+  main > .animate-fadeIn > section.card-surface .btn {
+    min-height: 42px;
+  }
+
+  main > .animate-fadeIn > section.card-surface .grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Status chips remain legible in both themes ───────────────────────── */
+:root:not(.dark) .badge-pill,
+:root:not(.dark) .pill {
+  border: 1px solid rgba(148, 163, 184, .18);
+}
+
+/* ── Motion/accessibility ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .btn,
+  .btn-icon,
+  nav[aria-label="Primary"] button,
+  button {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}

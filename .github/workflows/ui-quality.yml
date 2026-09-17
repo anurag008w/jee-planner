@@ -1,0 +1,50 @@
+name: UI Quality
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - 'ui/**'
+
+concurrency:
+  group: ui-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Scheduler regression tests
+        run: node test-engine.mjs
+
+      - name: Production web build
+        env:
+          VITE_APP_VERSION: ci
+        run: npm run build
+
+      - name: Built-app smoke checks
+        run: |
+          set -e
+          test -f dist/index.html
+          test -f dist/manifest.webmanifest
+          test -f dist/sw.js
+          grep -q 'id="root"' dist/index.html
+          grep -q 'manifest.webmanifest' dist/index.html
+          node -e "JSON.parse(require('node:fs').readFileSync('dist/manifest.webmanifest','utf8'))"
+          echo 'UI QUALITY OK'
