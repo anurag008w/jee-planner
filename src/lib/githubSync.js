@@ -3,7 +3,7 @@
 //
 // TOKEN SAFETY (important):
 // - Token sirf device ke localStorage me rehta hai (mobile ka mobile me, laptop ka laptop me).
-// - GitHub pe jaane wale payload me token KABHI nahi hota — sirf completions/settings/theme.
+// - GitHub pe jaane wale payload me token KABHI nahi hota — sirf completions/settings/theme/extraLectureCounts.
 // - Pull aane par bhi local token/config overwrite nahi hota.
 
 const API = 'https://api.github.com';
@@ -29,7 +29,6 @@ function cfgCheck(cfg) {
   if (!cfg.owner || !cfg.repo) throw new Error('Repo owner/name missing hai.');
 }
 
-// ---- READ: remote file lao (sha ke saath — wahi "lease" hai) ----
 export async function fetchRemote(cfg) {
   cfgCheck(cfg);
   const url = `${API}/repos/${cfg.owner}/${cfg.repo}/contents/${cfg.path}?ref=${encodeURIComponent(cfg.branch)}`;
@@ -39,7 +38,7 @@ export async function fetchRemote(cfg) {
   } catch {
     throw new Error('Network error — internet check karo.');
   }
-  if (r.status === 404) return { sha: null, data: null }; // file abhi bani hi nahi
+  if (r.status === 404) return { sha: null, data: null };
   if (r.status === 401) throw new Error('Token galat/expired hai (401). Naya token banao.');
   if (r.status === 403) throw new Error('Permission nahi (403) — token me repo access do.');
   if (!r.ok) throw new Error(`GitHub pull failed (${r.status}).`);
@@ -47,7 +46,6 @@ export async function fetchRemote(cfg) {
   return { sha: j.sha, data: JSON.parse(b64decodeUnicode(j.content || '')) };
 }
 
-// ---- WRITE: payload bhejo. sha diya → safe/lease (purana sha = 409). sha null → nayi file. ----
 export async function pushRemote(cfg, payload, sha) {
   cfgCheck(cfg);
   const url = `${API}/repos/${cfg.owner}/${cfg.repo}/contents/${cfg.path}`;
@@ -73,7 +71,6 @@ export async function pushRemote(cfg, payload, sha) {
   return { fileSha: j.content?.sha || '', commitSha: j.commit?.sha || '' };
 }
 
-// ---- PAYLOAD: sirf planner data. Token yahan kabhi nahi aata. ----
 export function buildPayload(state) {
   return {
     app: 'jee-planner',
@@ -81,19 +78,19 @@ export function buildPayload(state) {
     completions: state.completions,
     settings: state.settings,
     theme: state.theme,
+    extraLectureCounts: state.extraLectureCounts || {},
   };
 }
 
-// Dirty-check ke liye stable snapshot (token-free).
 export function snapshotOf(payload) {
   return JSON.stringify({
     completions: payload.completions || {},
     settings: payload.settings || {},
     theme: payload.theme || 'light',
+    extraLectureCounts: payload.extraLectureCounts || {},
   });
 }
 
-// ---- MERGE (normal Pull): progress kabhi mat khona ----
 export function mergePull(localPayload, remoteData, localIsNewer) {
   const completions = { ...(remoteData.completions || {}) };
   for (const [id, v] of Object.entries(localPayload.completions || {})) {
@@ -102,8 +99,10 @@ export function mergePull(localPayload, remoteData, localIsNewer) {
   return {
     app: 'jee-planner',
     completions,
-    // settings/theme: jo side nayi hai wo jeetti hai (tie → remote, kyunki pull manga hai)
     settings: localIsNewer ? localPayload.settings : (remoteData.settings || localPayload.settings),
     theme: localIsNewer ? localPayload.theme : (remoteData.theme || localPayload.theme),
+    extraLectureCounts: localIsNewer
+      ? (localPayload.extraLectureCounts || {})
+      : (remoteData.extraLectureCounts || localPayload.extraLectureCounts || {}),
   };
 }
