@@ -33,6 +33,9 @@ jobs:
       - name: Scheduler regression tests
         run: node test-engine.mjs
 
+      - name: Extra lecture regression tests
+        run: node test-extra-lectures.mjs
+
       - name: Production web build
         env:
           VITE_APP_VERSION: ci
