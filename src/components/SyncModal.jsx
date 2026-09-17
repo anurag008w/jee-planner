@@ -23,16 +23,16 @@ function fmtTime(iso) {
 export default function SyncModal() {
   const {
     sync, setSyncOpen, setSyncConfig, markSynced, importBackup,
-    completions, settings, theme,
+    completions, settings, theme, extraLectureCounts,
   } = useStore();
 
   const [token, setToken] = useState(sync.token);
   const [owner, setOwner] = useState(sync.owner);
   const [repo, setRepo] = useState(sync.repo);
-  const [busy, setBusy] = useState(null); // 'pull' | 'push' | 'fpull' | 'fpush' | 'lease'
-  const [msg, setMsg] = useState(null); // { ok: bool, text }
+  const [busy, setBusy] = useState(null);
+  const [msg, setMsg] = useState(null);
 
-  const localPayload = buildPayload({ completions, settings, theme });
+  const localPayload = buildPayload({ completions, settings, theme, extraLectureCounts });
   const dirty = sync.lastSnapshot !== '' && snapshotOf(localPayload) !== sync.lastSnapshot;
 
   const saveSettings = () => {
@@ -55,7 +55,6 @@ export default function SyncModal() {
     }
   };
 
-  // ---- PULL (merge): progress union, nayi side ki settings ----
   const doPull = () => run('pull', async () => {
     const { sha, data } = await fetchRemote(cfg());
     if (!data) throw new Error('GitHub pe file nahi mili — pehle Push karo.');
@@ -67,11 +66,10 @@ export default function SyncModal() {
     return `Pull ho gaya (remote ${shortSha(sha)}). Progress merge, settings ${localIsNewer ? 'local wali' : 'nayi wali'} rakhi.`;
   });
 
-  // ---- PUSH (safe): remote badla to block ----
   const doPush = () => run('push', async () => {
     const { sha, data } = await fetchRemote(cfg());
     if (data && sync.lastSyncedAt && data.savedAt && data.savedAt > sync.lastSyncedAt
-        && snapshotOf({ completions: data.completions, settings: data.settings, theme: data.theme }) !== sync.lastSnapshot) {
+        && snapshotOf({ completions: data.completions, settings: data.settings, theme: data.theme, extraLectureCounts: data.extraLectureCounts }) !== sync.lastSnapshot) {
       throw new Error('GitHub pe naya data hai — pehle Pull karo, phir Push.');
     }
     const res = await pushRemote(cfg(), localPayload, sha);
@@ -79,7 +77,6 @@ export default function SyncModal() {
     return `Push ho gaya (${shortSha(res.fileSha)}).`;
   });
 
-  // ---- FORCE PULL: remote jaisa hai waisa (local mit jayega) ----
   const doForcePull = () => {
     if (!window.confirm('Force Pull? Tumhara local data MIT jayega, GitHub wala aa jayega. Pakka?')) return;
     run('fpull', async () => {
@@ -91,7 +88,6 @@ export default function SyncModal() {
     });
   };
 
-  // ---- FORCE PUSH: local jaisa hai waisa (remote mit jayega) ----
   const doForcePush = () => {
     if (!window.confirm('Force Push? GitHub ka data MIT jayega, tumhara local chadh jayega. Pakka?')) return;
     run('fpush', async () => {
@@ -102,7 +98,6 @@ export default function SyncModal() {
     });
   };
 
-  // ---- PUSH WITH LEASE: sirf tabhi push jab remote wahi ho jo tumne dekha tha ----
   const doLeasePush = () => run('lease', async () => {
     if (!sync.lastRemoteSha) throw new Error('Lease ke liye pehle ek Pull/Push karo (remote sha chahiye).');
     const res = await pushRemote(cfg(), localPayload, sync.lastRemoteSha);
@@ -125,39 +120,26 @@ export default function SyncModal() {
               {dirty && <span className="text-amber-600 dark:text-amber-400 font-semibold"> • local changes pending</span>}
             </p>
           </div>
-          <button onClick={() => !busyAny && setSyncOpen(false)} className="btn-icon" aria-label="Close sync">
-            <X size={18} />
-          </button>
+          <button onClick={() => !busyAny && setSyncOpen(false)} className="btn-icon" aria-label="Close sync"><X size={18} /></button>
         </div>
 
         <div className="p-4 space-y-4">
-          {/* Token + repo settings */}
           <div className="rounded-xl border border-gray-200 dark:border-white/10 p-3 space-y-2.5">
             <label className="flex items-center gap-1.5 text-[12px] font-bold text-gray-700 dark:text-gray-200">
               <KeyRound size={14} /> GitHub Token <span className="font-medium text-gray-400">(sirf is device me rahega)</span>
             </label>
-            <input
-              type="password"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              placeholder="ghp_xxxx… (classic, repo scope)"
-              className="field"
-              autoComplete="off"
-            />
+            <input type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="ghp_xxxx… (classic, repo scope)" className="field" autoComplete="off" />
             <div className="grid grid-cols-2 gap-2">
               <input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="owner" className="field" aria-label="Repo owner" />
               <input value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="repo" className="field" aria-label="Repo name" />
             </div>
-            <button onClick={saveSettings} className={`${btn} btn-secondary w-full py-2 text-[12.5px]`}>
-              <Check size={14} /> Save on this device
-            </button>
+            <button onClick={saveSettings} className={`${btn} btn-secondary w-full py-2 text-[12.5px]`}><Check size={14} /> Save on this device</button>
             <p className="text-[10.5px] text-gray-400 dark:text-gray-500 leading-snug">
               Token GitHub → Settings → Developer settings → Personal access tokens (classic, <b>repo</b> scope) se banao.
               Ye token kabhi GitHub pe upload nahi hota — mobile ka mobile me, laptop ka laptop me.
             </p>
           </div>
 
-          {/* Normal operations */}
           <div className="grid grid-cols-2 gap-2">
             <button onClick={doPull} disabled={busyAny} className={`${btn} btn-primary py-2.5`}>
               {busy === 'pull' ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Pull
@@ -167,11 +149,8 @@ export default function SyncModal() {
             </button>
           </div>
 
-          {/* Force operations */}
           <div className="rounded-xl border border-red-200 dark:border-red-500/25 p-3 space-y-2">
-            <p className="flex items-center gap-1.5 text-[11.5px] font-bold text-red-600 dark:text-red-400">
-              <AlertTriangle size={13} /> Danger zone — dusri side ka data mit jayega
-            </p>
+            <p className="flex items-center gap-1.5 text-[11.5px] font-bold text-red-600 dark:text-red-400"><AlertTriangle size={13} /> Danger zone — dusri side ka data mit jayega</p>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={doForcePull} disabled={busyAny} className={`${btn} py-2.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300 border border-red-200 dark:border-red-500/30 hover:bg-red-100 dark:hover:bg-red-500/20`}>
                 {busy === 'fpull' ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Force Pull
@@ -185,7 +164,6 @@ export default function SyncModal() {
             </button>
           </div>
 
-          {/* Status message */}
           {msg && (
             <div className={`px-3 py-2.5 rounded-xl text-[12.5px] font-medium leading-snug ${msg.ok
               ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/25'

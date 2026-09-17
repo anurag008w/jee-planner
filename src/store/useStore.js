@@ -3,7 +3,14 @@ import { persist } from 'zustand/middleware';
 import dataset from '../data/dataset.json';
 import { computeResolvedSchedule, getSundaysBetween, COMMON_HOLIDAYS } from './scheduleEngine';
 import { getToday } from '../utils/helpers';
-import { dateDiffInDays, shiftLecturesToStartDate, shiftSundayOffDays } from './scheduleDateUtils';
+import { shiftLecturesToStartDate, shiftSundayOffDays } from './scheduleDateUtils';
+import {
+  buildLecturesWithExtras,
+  compareLectureIds,
+  getExtraLectureSeriesKey,
+  normalizeExtraLectureCounts,
+  pruneExtraCompletions,
+} from './extraLectures';
 
 // Default off days = every Sunday inside the schedule span
 //                 + the 9 toggle-based common holidays (14 Sep, 2 Oct, 20 Oct, 6/7/9/11/16 Nov, 25 Dec)
@@ -14,7 +21,7 @@ const defaultSundayOffs = getSundaysBetween(scheduleDates[0], scheduleDates[sche
 const commonHolidayDates = COMMON_HOLIDAYS.map(h => h.date).filter(d => d >= scheduleDates[0] && d <= scheduleDates[scheduleDates.length - 1]);
 const defaultOffDays = [...new Set([...defaultSundayOffs, ...commonHolidayDates])].sort();
 
-const seriesKey = (lecture) => [lecture.subject, lecture.chemistryBranch || '', lecture.chapterName].join('::');
+const seriesKey = getExtraLectureSeriesKey;
 
 // Final integrity pass: a lecture can never resolve before an earlier lecture
 // in the same subject/chapter series. This protects the displayed schedule from
@@ -32,7 +39,10 @@ const enforceLectureOrder = (schedule, lectures, completions) => {
     series.sort((a, b) => {
       const an = Number(a.lectureNumber) || Number.MAX_SAFE_INTEGER;
       const bn = Number(b.lectureNumber) || Number.MAX_SAFE_INTEGER;
-      return an - bn || a.newStudyDate.localeCompare(b.newStudyDate) || (a.slot || 0) - (b.slot || 0) || a.id - b.id;
+      return an - bn
+        || a.newStudyDate.localeCompare(b.newStudyDate)
+        || (Number(a.slot) || 0) - (Number(b.slot) || 0)
+        || compareLectureIds(a.id, b.id);
     });
 
     let previousDate = null;
@@ -70,9 +80,9 @@ const enforceLectureOrder = (schedule, lectures, completions) => {
       const bk = seriesKey(b);
       if (ak === bk) {
         return (Number(a.lectureNumber) || 0) - (Number(b.lectureNumber) || 0)
-          || (a.slot || 0) - (b.slot || 0);
+          || (Number(a.slot) || 0) - (Number(b.slot) || 0);
       }
-      return (a.slot || 0) - (b.slot || 0) || a.id - b.id;
+      return (Number(a.slot) || 0) - (Number(b.slot) || 0) || compareLectureIds(a.id, b.id);
     });
   });
 
@@ -80,9 +90,10 @@ const enforceLectureOrder = (schedule, lectures, completions) => {
   return schedule;
 };
 
-const computeSchedule = (completions, settings) => {
+const computeSchedule = (completions, settings, extraLectureCounts = {}) => {
   const startDate = settings.startDate || ORIGINAL_START_DATE;
-  const scheduledLectures = shiftLecturesToStartDate(dataset.lectures, ORIGINAL_START_DATE, startDate);
+  const combinedLectures = buildLecturesWithExtras(dataset.lectures, extraLectureCounts);
+  const scheduledLectures = shiftLecturesToStartDate(combinedLectures, ORIGINAL_START_DATE, startDate);
   const schedule = computeResolvedSchedule({
     lectures: scheduledLectures,
     completions,
@@ -106,10 +117,11 @@ const useStore = create(
         phaseRanges: null,
         chapterPhases: {},
       };
-      const initialSchedule = computeSchedule({}, initialSettings);
+      const initialSchedule = computeSchedule({}, initialSettings, {});
 
       return {
-        lectures: dataset.lectures,
+        lectures: buildLecturesWithExtras(dataset.lectures, {}),
+        extraLectureCounts: {},
         chapterProgress: dataset.chapterProgress,
         dashboard: dataset.dashboard,
         commonHolidays: COMMON_HOLIDAYS,
@@ -174,7 +186,8 @@ const useStore = create(
         recompute: (opts = {}) => {
           const s = get();
           const today = s.settings.previewDate || getToday();
-          const schedule = computeSchedule(s.completions, s.settings);
+          const schedule = computeSchedule(s.completions, s.settings, s.extraLectureCounts);
+          const lectures = buildLecturesWithExtras(dataset.lectures, s.extraLectureCounts);
           if (opts.freezeToday) {
             const prevPlan = (s.schedule && s.schedule.today === today && s.schedule.dayMap && s.schedule.dayMap[today]) || [];
             if (prevPlan.length > 0) {
@@ -185,7 +198,7 @@ const useStore = create(
               });
             }
           }
-          set({ schedule: { ...schedule, today } });
+          set({ schedule: { ...schedule, today }, lectures });
         },
 
         // ----- completion actions -----
@@ -293,6 +306,21 @@ const useStore = create(
           get().recompute();
         },
 
+        setExtraLectureCount: (lectureOrSeriesKey, count) => {
+          const key = typeof lectureOrSeriesKey === 'string' ? lectureOrSeriesKey : seriesKey(lectureOrSeriesKey);
+          const nextCount = normalizeExtraLectureCounts({ [key]: count })[key] || 0;
+          set((s) => {
+            const extraLectureCounts = { ...(s.extraLectureCounts || {}) };
+            if (nextCount > 0) extraLectureCounts[key] = nextCount;
+            else delete extraLectureCounts[key];
+            return {
+              extraLectureCounts,
+              completions: pruneExtraCompletions(s.completions, extraLectureCounts),
+            };
+          });
+          get().recompute();
+        },
+
         isCompleted: (id) => get().completions[id] === 'completed',
         getCompletionCount: () => Object.values(get().completions).filter((v) => v === 'completed').length,
         getDateLectures: (date) => get().lectures.filter((l) => l.newStudyDate === date),
@@ -306,6 +334,7 @@ const useStore = create(
             completions: s.completions,
             settings: s.settings,
             theme: s.theme,
+            extraLectureCounts: s.extraLectureCounts,
           };
         },
         importBackup: (data) => {
@@ -314,11 +343,16 @@ const useStore = create(
             throw new Error('Invalid backup — yeh JEE Planner ki backup file nahi hai');
           }
           const current = get();
+          const extraLectureCounts = normalizeExtraLectureCounts(parsed.extraLectureCounts || {});
           const offDays = (parsed.settings && Array.isArray(parsed.settings.offDays))
             ? parsed.settings.offDays
             : (current.settings.offDays || []);
           set({
-            completions: (parsed.completions && typeof parsed.completions === 'object') ? parsed.completions : {},
+            completions: pruneExtraCompletions(
+              (parsed.completions && typeof parsed.completions === 'object') ? parsed.completions : {},
+              extraLectureCounts,
+            ),
+            extraLectureCounts,
             theme: parsed.theme === 'dark' ? 'dark' : 'light',
             settings: {
               offDays: [...new Set(offDays)].sort(),
@@ -337,6 +371,7 @@ const useStore = create(
       name: 'jee-planner-storage',
       partialize: (state) => ({
         completions: state.completions,
+        extraLectureCounts: state.extraLectureCounts,
         theme: state.theme,
         currentPage: state.currentPage,
         sync: state.sync,
@@ -349,13 +384,14 @@ const useStore = create(
           chapterPhases: state.settings.chapterPhases,
         },
       }),
-      version: 5,
+      version: 6,
       migrate: (persisted) => {
         const base = persisted || {};
         const prevOffDays = base.settings?.offDays || [];
         // v2 → v3: merge the toggle-based common holidays into the off-day list
         // (they were not part of the old default, but they ARE holidays by default)
         const mergedOffDays = [...new Set([...prevOffDays, ...commonHolidayDates])].sort();
+        const extraLectureCounts = normalizeExtraLectureCounts(base.extraLectureCounts || {});
         const mergedSettings = {
           offDays: mergedOffDays,
           startDate: base.settings?.startDate || ORIGINAL_START_DATE,
@@ -366,7 +402,8 @@ const useStore = create(
         };
         return {
           ...base,
-          completions: base.completions || {},
+          completions: pruneExtraCompletions(base.completions || {}, extraLectureCounts),
+          extraLectureCounts,
           theme: base.theme || 'light',
           currentPage: base.currentPage || 'today',
           settings: mergedSettings,
