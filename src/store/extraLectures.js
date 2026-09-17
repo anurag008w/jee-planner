@@ -89,6 +89,10 @@ export function pruneExtraCompletions(completions, counts) {
   });
 
   return Object.fromEntries(
-    Object.entries(completions || {}).filter(([id]) => !String(id).startsWith(String(EXTRA_ID_BASE)) || validIds.has(String(id)))
+    Object.entries(completions || {}).filter(([id]) => {
+      const numericId = Number(id);
+      const isGenerated = Number.isSafeInteger(numericId) && numericId >= EXTRA_ID_BASE;
+      return !isGenerated || validIds.has(String(id));
+    })
   );
 }
