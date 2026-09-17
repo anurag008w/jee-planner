@@ -1,24 +1,40 @@
 import { useState, useMemo } from 'react';
 import useStore from '../store/useStore';
+import dataset from '../data/dataset.json';
+import { shiftLecturesToStartDate } from '../store/scheduleDateUtils';
 import LectureCard from '../components/LectureCard';
 import { formatDate } from '../utils/helpers';
 import { Filter, Search, X, ListOrdered, CalendarClock, Inbox, SlidersHorizontal } from 'lucide-react';
 
+const ORIGINAL_START_DATE = [...new Set(dataset.lectures.map(l => l.newStudyDate))].sort()[0];
+
 export default function MasterSchedulePage() {
-  const { lectures, completions, filters, setFilters, resetFilters, schedule } = useStore();
+  const { lectures, completions, filters, setFilters, resetFilters, schedule, settings } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [view, setView] = useState('resolved'); // 'resolved' | 'original'
 
-  const uniqueDates = [...new Set(lectures.map(l => l.newStudyDate))].sort();
-  const uniquePhases = [...new Set(lectures.map(l => l.phase))];
-  const uniqueSubjects = ['Physics', 'Mathematics', 'Chemistry'];
-  const uniqueBranches = [...new Set(lectures.filter(l => l.chemistryBranch).map(l => l.chemistryBranch))];
-  const uniqueChapters = [...new Set(lectures.map(l => l.chapterName))].sort();
-  const uniqueFaculty = [...new Set(lectures.map(l => l.facultyName))].sort();
+  // Current view must use the active start date, while Original keeps the
+  // immutable dataset dates. This also makes date filters match what the user
+  // actually sees on the current calendar.
+  const viewBaseLectures = useMemo(() => {
+    if (view === 'original') return lectures;
+    return shiftLecturesToStartDate(
+      lectures,
+      ORIGINAL_START_DATE,
+      settings.startDate || ORIGINAL_START_DATE,
+    );
+  }, [lectures, view, settings.startDate]);
+
+  const uniqueDates = [...new Set(viewBaseLectures.map(l => l.newStudyDate))].sort();
+  const uniquePhases = [...new Set(viewBaseLectures.map(l => l.phase))];
+  const uniqueSubjects = [...new Set(viewBaseLectures.map(l => l.subject))];
+  const uniqueBranches = [...new Set(viewBaseLectures.filter(l => l.chemistryBranch).map(l => l.chemistryBranch))];
+  const uniqueChapters = [...new Set(viewBaseLectures.map(l => l.chapterName))].sort();
+  const uniqueFaculty = [...new Set(viewBaseLectures.map(l => l.facultyName))].sort();
 
   const filteredLectures = useMemo(() => {
-    let result = [...lectures];
+    let result = [...viewBaseLectures];
 
     if (filters.date) result = result.filter(l => l.newStudyDate === filters.date);
     if (filters.phase) result = result.filter(l => l.phase === filters.phase);
@@ -42,17 +58,20 @@ export default function MasterSchedulePage() {
     }
 
     return result;
-  }, [lectures, filters, searchQuery, completions]);
+  }, [viewBaseLectures, filters, searchQuery, completions]);
 
-  // For the RESOLVED view each lecture carries its new calendar position + flags
+  // For the RESOLVED view each lecture carries its current calendar position + flags.
+  // Completed lectures are not in schedule.resolved because the scheduler removes
+  // completed work from the active pool, so retain the current shifted date here.
   const viewLectures = useMemo(() => {
     if (view === 'original') {
       return filteredLectures.map(l => ({ ...l, isBacklog: false }));
     }
     return filteredLectures.map(l => {
-      if (completions[l.id] !== 'completed') {
-        const r = schedule.resolved[l.id];
-        if (r) return { ...l, isBacklog: r.isBacklog, resolvedDate: r.resolvedDate };
+      const r = schedule.resolved[l.id];
+      if (r) return { ...l, isBacklog: r.isBacklog, resolvedDate: r.resolvedDate };
+      if (completions[l.id] === 'completed') {
+        return { ...l, isBacklog: false, resolvedDate: l.newStudyDate };
       }
       return { ...l, isBacklog: false };
     });
