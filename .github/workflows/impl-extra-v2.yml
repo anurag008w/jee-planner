@@ -1,0 +1,17 @@
+name: Extra lectures implementation runner
+on:
+  push:
+    branches:
+      - feature/extra-lectures-impl
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/extra-lectures-impl
+          fetch-depth: 0
+      - name: Verify runner
+        run: echo "runner-ok"
