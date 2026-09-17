@@ -24,7 +24,7 @@ export default function SubjectsPage() {
     <div className="animate-fadeIn space-y-6">
       <div>
         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Subjects Overview</h2>
-        <p className="text-[12.5px] text-gray-500 dark:text-gray-400">392 total lectures across Physics, Mathematics and Chemistry</p>
+        <p className="text-[12.5px] text-gray-500 dark:text-gray-400">Physics, Mathematics and Chemistry — live plan overview</p>
       </div>
 
       <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 rounded-2xl p-6 text-white shadow-xl shadow-indigo-500/15">
