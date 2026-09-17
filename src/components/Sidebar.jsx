@@ -28,7 +28,7 @@ export default function Sidebar({ mobile }) {
       <div className="p-5 border-b border-[var(--color-border)] dark:border-[#2c2f40]">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-500/25">JEE</div>
-          <div><h1 className="font-bold text-[15px] text-gray-900 dark:text-white leading-tight">Lecture Planner</h1><p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">JEE 2027 • 392 Lectures</p></div>
+          <div><h1 className="font-bold text-[15px] text-gray-900 dark:text-white leading-tight">Lecture Planner</h1><p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">JEE 2027</p></div>
         </div>
       </div>
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-thin" aria-label="Pages">
