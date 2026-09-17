@@ -21,6 +21,11 @@ export default function TodayPage() {
   const todayCompleted = todayPlan.filter(l => completions[l.id] === 'completed').length;
   const totalCompleted = Object.values(completions).filter(v => v === 'completed').length;
   const totalLectures = lectures.length;
+  const subjectTotals = {
+    Physics: lectures.filter(l => l.subject === 'Physics').length,
+    Mathematics: lectures.filter(l => l.subject === 'Mathematics').length,
+    Chemistry: lectures.filter(l => l.subject === 'Chemistry').length,
+  };
   const remaining = totalLectures - totalCompleted;
   const overallPercent = totalLectures ? Math.round((totalCompleted / totalLectures) * 100) : 0;
   const todayPercent = todayPlan.length ? Math.round((todayCompleted / todayPlan.length) * 100) : 0;
@@ -107,7 +112,7 @@ export default function TodayPage() {
 
       {tomorrowLectures.length > 0 && <div className="animate-fadeIn stagger-5"><h3 className="text-[14px] font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><ChevronRight size={16} className="text-purple-500"/>Up Next — {formatDateShort(tomorrow)}<span className="text-[11px] font-normal text-gray-400 ml-1">{tomorrowLectures.length} lecture{tomorrowLectures.length > 1 ? 's' : ''}{tomorrowLectures.some(l=>l.isBacklog) && ' • backlog'}</span></h3><div className="space-y-2">{tomorrowLectures.slice(0,3).map(l=><LectureCard key={l.id} lecture={l} compact showDate/>)}</div></div>}
 
-      <div className="animate-fadeIn stagger-6 card-surface p-5"><div className="flex items-center justify-between mb-3"><h3 className="text-[14px] font-semibold text-gray-900 dark:text-white">Overall Progress</h3><span className="text-[13px] font-bold text-indigo-600 dark:text-indigo-400">{overallPercent}%</span></div><ProgressBar value={overallPercent} size="lg" showShimmer/><div className="flex justify-between mt-2 text-[11px] text-gray-500 dark:text-gray-400"><span>{totalCompleted} completed</span><span>{remaining} remaining • {Math.round(schedule.totalEffort || remaining)} effort units</span></div><div className="mt-4 grid grid-cols-3 gap-3"><SubjectMini label="Physics" total={139} completed={lectures.filter(l=>l.subject==='Physics'&&completions[l.id]==='completed').length} color="bg-blue-500"/><SubjectMini label="Math" total={135} completed={lectures.filter(l=>l.subject==='Mathematics'&&completions[l.id]==='completed').length} color="bg-amber-500"/><SubjectMini label="Chemistry" total={118} completed={lectures.filter(l=>l.subject==='Chemistry'&&completions[l.id]==='completed').length} color="bg-emerald-500"/></div></div>
+      <div className="animate-fadeIn stagger-6 card-surface p-5"><div className="flex items-center justify-between mb-3"><h3 className="text-[14px] font-semibold text-gray-900 dark:text-white">Overall Progress</h3><span className="text-[13px] font-bold text-indigo-600 dark:text-indigo-400">{overallPercent}%</span></div><ProgressBar value={overallPercent} size="lg" showShimmer/><div className="flex justify-between mt-2 text-[11px] text-gray-500 dark:text-gray-400"><span>{totalCompleted} completed</span><span>{remaining} remaining • {Math.round(schedule.totalEffort || remaining)} effort units</span></div><div className="mt-4 grid grid-cols-3 gap-3"><SubjectMini label="Physics" total={subjectTotals.Physics} completed={lectures.filter(l=>l.subject==='Physics'&&completions[l.id]==='completed').length} color="bg-blue-500"/><SubjectMini label="Math" total={subjectTotals.Mathematics} completed={lectures.filter(l=>l.subject==='Mathematics'&&completions[l.id]==='completed').length} color="bg-amber-500"/><SubjectMini label="Chemistry" total={subjectTotals.Chemistry} completed={lectures.filter(l=>l.subject==='Chemistry'&&completions[l.id]==='completed').length} color="bg-emerald-500"/></div></div>
     </div>
   );
 }
