@@ -1,18 +1,20 @@
 import { useState, useMemo } from 'react';
 import useStore from '../store/useStore';
-import dataset from '../data/dataset.json';
 import { shiftLecturesToStartDate } from '../store/scheduleDateUtils';
 import LectureCard from '../components/LectureCard';
 import { formatDate } from '../utils/helpers';
 import { Filter, Search, X, ListOrdered, CalendarClock, Inbox, SlidersHorizontal } from 'lucide-react';
-
-const ORIGINAL_START_DATE = [...new Set(dataset.lectures.map(l => l.newStudyDate))].sort()[0];
 
 export default function MasterSchedulePage() {
   const { lectures, completions, filters, setFilters, resetFilters, schedule, settings } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [view, setView] = useState('resolved'); // 'resolved' | 'original'
+
+  const batchOriginalStartDate = useMemo(() => {
+    const dates = [...new Set(lectures.map((l) => l.newStudyDate))].filter(Boolean).sort();
+    return dates[0] || '2026-09-11';
+  }, [lectures]);
 
   // Current view must use the active start date, while Original keeps the
   // immutable dataset dates. This also makes date filters match what the user
@@ -21,10 +23,10 @@ export default function MasterSchedulePage() {
     if (view === 'original') return lectures;
     return shiftLecturesToStartDate(
       lectures,
-      ORIGINAL_START_DATE,
-      settings.startDate || ORIGINAL_START_DATE,
+      batchOriginalStartDate,
+      settings.startDate || batchOriginalStartDate,
     );
-  }, [lectures, view, settings.startDate]);
+  }, [lectures, view, settings.startDate, batchOriginalStartDate]);
 
   const uniqueDates = [...new Set(viewBaseLectures.map(l => l.newStudyDate))].sort();
   const uniquePhases = [...new Set(viewBaseLectures.map(l => l.phase))];

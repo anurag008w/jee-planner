@@ -24,6 +24,7 @@ export default function SyncModal() {
   const {
     sync, setSyncOpen, setSyncConfig, markSynced, importBackup,
     completions, settings, theme, extraLectureCounts,
+    batches, activeBatchId, defaultBatchId,
   } = useStore();
 
   const [token, setToken] = useState(sync.token);
@@ -32,7 +33,10 @@ export default function SyncModal() {
   const [busy, setBusy] = useState(null);
   const [msg, setMsg] = useState(null);
 
-  const localPayload = buildPayload({ completions, settings, theme, extraLectureCounts });
+  const localPayload = buildPayload({
+    batches, activeBatchId, defaultBatchId,
+    completions, settings, theme, extraLectureCounts,
+  });
   const dirty = sync.lastSnapshot !== '' && snapshotOf(localPayload) !== sync.lastSnapshot;
 
   const saveSettings = () => {

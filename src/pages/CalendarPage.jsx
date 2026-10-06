@@ -2,20 +2,19 @@ import { useState } from 'react';
 import useStore from '../store/useStore';
 import LectureCard from '../components/LectureCard';
 import OffDayCatchUp from '../components/OffDayCatchUp';
-import { formatDateFull, formatDateShort } from '../utils/helpers';
+import { formatDateFull, formatDateShort, getSubjectColor } from '../utils/helpers';
 import { ChevronLeft, ChevronRight, Calendar, X, CalendarOff, CalendarCheck2, AlertTriangle, PartyPopper } from 'lucide-react';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-// Color each lecture's dot: Physics=blue, Math=amber, Chemistry branch colors (PC=cyan, OC=violet, IC=pink)
+// Color each lecture's dot dynamically based on subject and branch
 const dotForLecture = (l) => {
-  if (l.subject === 'Physics') return 'bg-blue-500';
-  if (l.subject === 'Mathematics') return 'bg-amber-500';
   if (l.chemistryBranch === 'Physical Chemistry') return 'bg-cyan-500';
   if (l.chemistryBranch === 'Organic Chemistry') return 'bg-violet-500';
   if (l.chemistryBranch === 'Inorganic Chemistry') return 'bg-pink-500';
-  return 'bg-emerald-500';
+  const c = getSubjectColor(l.subject);
+  return c?.bar || 'bg-indigo-500';
 };
 
 const dotTitle = (l) => {
@@ -32,7 +31,14 @@ export default function CalendarPage() {
   const sundaysOff = settings.offDays.some(d => new Date(d).getDay() === 0);
   const allHolidaysOff = commonHolidays.every(h => settings.offDays.includes(h.date));
 
-  const [viewDate, setViewDate] = useState(new Date(2026, 8, 1));
+  const [viewDate, setViewDate] = useState(() => {
+    const dStr = schedule.today || settings.startDate || '2026-09-11';
+    const parts = dStr.split('-').map(Number);
+    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      return new Date(parts[0], parts[1] - 1, 1);
+    }
+    return new Date(2026, 8, 1);
+  });
   const [selectedDate, setSelectedDate] = useState(null);
 
   const year = viewDate.getFullYear();

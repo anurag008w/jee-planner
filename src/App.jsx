@@ -6,6 +6,7 @@ import MobileNav from './components/MobileNav';
 import SearchModal from './components/SearchModal';
 import LectureModal from './components/LectureModal';
 import SyncModal from './components/SyncModal';
+import BatchModal from './components/BatchModal';
 import TodayPage from './pages/TodayPage';
 import CalendarPage from './pages/CalendarPage';
 import MasterSchedulePage from './pages/MasterSchedulePage';
@@ -28,7 +29,7 @@ const pages = {
 };
 
 export default function App() {
-  const { theme, searchOpen, selectedLecture, sidebarOpen, currentPage, syncOpen } = useStore();
+  const { theme, searchOpen, selectedLecture, sidebarOpen, currentPage, syncOpen, batchModalOpen } = useStore();
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const promptedRef = useRef(false);
 
@@ -71,6 +72,7 @@ export default function App() {
       {searchOpen && <SearchModal />}
       {selectedLecture && <LectureModal />}
       {syncOpen && <SyncModal />}
+      {batchModalOpen && <BatchModal />}
     </div>
   );
 }

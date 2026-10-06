@@ -84,6 +84,43 @@ export const SUBJECT_FOUNDATIONS = {
   },
 };
 
-export function getChapterPairing(chapterName) {
-  return CHAPTER_PAIRING[chapterName] || null;
+import { resolveCanonicalChapter } from './chapterAliases.js';
+
+export function getChapterPairing(chapterName, customPairings = null) {
+  if (!chapterName) return null;
+
+  // 1. Direct custom pairing on the raw name
+  if (customPairings && customPairings[chapterName]) {
+    const custom = customPairings[chapterName];
+    if (typeof custom === 'string') return { base: custom, treatment: '' };
+    return {
+      base: custom.base || custom.prerequisite || '',
+      treatment: custom.treatment || custom.sessions || '',
+    };
+  }
+
+  // 2. Direct built-in pairing on raw name
+  if (CHAPTER_PAIRING[chapterName]) {
+    return CHAPTER_PAIRING[chapterName];
+  }
+
+  // 3. Resolve canonical chapter name
+  const { canonical } = resolveCanonicalChapter(chapterName);
+
+  // 3a. Custom pairing on canonical name
+  if (customPairings && customPairings[canonical]) {
+    const custom = customPairings[canonical];
+    if (typeof custom === 'string') return { base: custom, treatment: '' };
+    return {
+      base: custom.base || custom.prerequisite || '',
+      treatment: custom.treatment || custom.sessions || '',
+    };
+  }
+
+  // 3b. Built-in pairing on canonical name
+  if (CHAPTER_PAIRING[canonical]) {
+    return CHAPTER_PAIRING[canonical];
+  }
+
+  return null;
 }

@@ -92,9 +92,16 @@ export const STRATEGY_STYLES = {
   },
 };
 
+import { resolveCanonicalChapter } from './chapterAliases.js';
+
 export function getChapterStrategy(chapterName) {
-  const key = CHAPTER_STRATEGY[chapterName];
-  return key ? STRATEGY_STYLES[key] : null;
+  if (!chapterName) return null;
+  const direct = CHAPTER_STRATEGY[chapterName];
+  if (direct) return STRATEGY_STYLES[direct];
+
+  const { canonical } = resolveCanonicalChapter(chapterName);
+  const aliasKey = CHAPTER_STRATEGY[canonical];
+  return aliasKey ? STRATEGY_STYLES[aliasKey] : null;
 }
 
 // Effort weight of a lecture in "full-lecture units".
@@ -103,6 +110,9 @@ export function getChapterStrategy(chapterName) {
 //  (one-shot material half effort lagta hai — 2 one-shots = 1 full lecture)
 export function getLectureLoad(lecture) {
   if (!lecture) return 1;
-  const key = CHAPTER_STRATEGY[lecture.chapterName];
-  return key && key !== 'full' ? 0.5 : 1;
+  const direct = CHAPTER_STRATEGY[lecture.chapterName];
+  if (direct) return direct !== 'full' ? 0.5 : 1;
+
+  const strategy = getChapterStrategy(lecture.chapterName);
+  return strategy && strategy.label !== 'FULL' ? 0.5 : 1;
 }

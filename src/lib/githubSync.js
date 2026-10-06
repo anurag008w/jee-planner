@@ -75,6 +75,9 @@ export function buildPayload(state) {
   return {
     app: 'jee-planner',
     savedAt: new Date().toISOString(),
+    batches: state.batches,
+    activeBatchId: state.activeBatchId,
+    defaultBatchId: state.defaultBatchId,
     completions: state.completions,
     settings: state.settings,
     theme: state.theme,
@@ -84,6 +87,8 @@ export function buildPayload(state) {
 
 export function snapshotOf(payload) {
   return JSON.stringify({
+    batches: payload.batches || {},
+    defaultBatchId: payload.defaultBatchId || 'default',
     completions: payload.completions || {},
     settings: payload.settings || {},
     theme: payload.theme || 'light',
@@ -92,6 +97,46 @@ export function snapshotOf(payload) {
 }
 
 export function mergePull(localPayload, remoteData, localIsNewer) {
+  if (remoteData.batches && typeof remoteData.batches === 'object') {
+    const mergedBatches = { ...(remoteData.batches || {}) };
+    const localBatches = localPayload.batches || {};
+
+    Object.entries(localBatches).forEach(([id, localB]) => {
+      if (!mergedBatches[id]) {
+        mergedBatches[id] = localB;
+      } else {
+        const remoteB = mergedBatches[id];
+        const mergedComp = { ...(remoteB.completions || {}) };
+        for (const [cid, val] of Object.entries(localB.completions || {})) {
+          if (val === 'completed' || !(cid in mergedComp)) {
+            mergedComp[cid] = val;
+          }
+        }
+        mergedBatches[id] = {
+          ...remoteB,
+          completions: mergedComp,
+          settings: localIsNewer ? localB.settings : (remoteB.settings || localB.settings),
+          extraLectureCounts: localIsNewer
+            ? (localB.extraLectureCounts || {})
+            : (remoteB.extraLectureCounts || localB.extraLectureCounts || {}),
+        };
+      }
+    });
+
+    return {
+      app: 'jee-planner',
+      savedAt: new Date().toISOString(),
+      batches: mergedBatches,
+      activeBatchId: localIsNewer
+        ? localPayload.activeBatchId
+        : (remoteData.activeBatchId || localPayload.activeBatchId),
+      defaultBatchId: localIsNewer
+        ? localPayload.defaultBatchId
+        : (remoteData.defaultBatchId || localPayload.defaultBatchId),
+      theme: localIsNewer ? localPayload.theme : (remoteData.theme || localPayload.theme),
+    };
+  }
+
   const completions = { ...(remoteData.completions || {}) };
   for (const [id, v] of Object.entries(localPayload.completions || {})) {
     if (v === 'completed' || !(id in completions)) completions[id] = v;

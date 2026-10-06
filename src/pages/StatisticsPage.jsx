@@ -22,7 +22,10 @@ export default function StatisticsPage() {
   const missedDays = (schedule.missedDates || []).length;
   const offDaysCount = (settings.offDays || []).length;
 
-  const subjects = ['Physics', 'Mathematics', 'Chemistry'].map(s => {
+  const distinctSubjectNames = [...new Set(lectures.map(l => l.subject).filter(Boolean))];
+  const subjectList = distinctSubjectNames.length > 0 ? distinctSubjectNames : ['Physics', 'Mathematics', 'Chemistry'];
+
+  const subjects = subjectList.map(s => {
     const sLectures = lectures.filter(l => l.subject === s);
     const sCompleted = sLectures.filter(l => completions[l.id] === 'completed').length;
     return {
@@ -30,20 +33,21 @@ export default function StatisticsPage() {
       total: sLectures.length,
       completed: sCompleted,
       remaining: sLectures.length - sCompleted,
-      pct: Math.round((sCompleted / sLectures.length) * 100),
+      pct: sLectures.length ? Math.round((sCompleted / sLectures.length) * 100) : 0,
       color: getSubjectColor(s),
     };
   });
 
-  const branches = ['Physical Chemistry', 'Organic Chemistry', 'Inorganic Chemistry'].map(b => {
-    const bLectures = lectures.filter(l => l.chemistryBranch === b);
+  const distinctBranchNames = [...new Set(lectures.map(l => l.chemistryBranch || l.branch).filter(Boolean))];
+  const branches = distinctBranchNames.map(b => {
+    const bLectures = lectures.filter(l => l.chemistryBranch === b || l.branch === b);
     const bCompleted = bLectures.filter(l => completions[l.id] === 'completed').length;
     return {
       name: b,
-      shortName: b.replace(' Chemistry', ''),
+      shortName: b.replace(/ Chemistry$/i, ''),
       total: bLectures.length,
       completed: bCompleted,
-      pct: Math.round((bCompleted / bLectures.length) * 100),
+      pct: bLectures.length ? Math.round((bCompleted / bLectures.length) * 100) : 0,
       color: getBranchColor(b),
     };
   });
@@ -147,33 +151,35 @@ export default function StatisticsPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 p-5">
-        <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-          <TrendingUp size={16} className="text-emerald-500" />
-          Chemistry Branches
-        </h3>
-        <div className="grid grid-cols-3 gap-3">
-          {branches.map(b => (
-            <div key={b.name} className="text-center">
-              <div className="relative w-16 h-16 mx-auto mb-2">
-                <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
-                  <circle cx="32" cy="32" r="26" fill="none" stroke="#e5e7eb" strokeWidth="5" className="dark:stroke-white/5" />
-                  <circle cx="32" cy="32" r="26" fill="none" stroke={b.color.hex} strokeWidth="5" strokeLinecap="round"
-                    strokeDasharray={`${2 * Math.PI * 26}`}
-                    strokeDashoffset={`${2 * Math.PI * 26 * (1 - b.pct / 100)}`}
-                    className="transition-all duration-700"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-[13px] font-bold text-gray-900 dark:text-white">{b.pct}%</span>
+      {branches.length > 0 && (
+        <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 p-5">
+          <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <TrendingUp size={16} className="text-emerald-500" />
+            {branches.some(b => b.name.includes('Chemistry')) ? 'Chemistry Branches' : 'Subject Branches'}
+          </h3>
+          <div className={`grid grid-cols-${Math.min(branches.length, 3)} gap-3`}>
+            {branches.map(b => (
+              <div key={b.name} className="text-center">
+                <div className="relative w-16 h-16 mx-auto mb-2">
+                  <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
+                    <circle cx="32" cy="32" r="26" fill="none" stroke="#e5e7eb" strokeWidth="5" className="dark:stroke-white/5" />
+                    <circle cx="32" cy="32" r="26" fill="none" stroke={b.color.hex} strokeWidth="5" strokeLinecap="round"
+                      strokeDasharray={`${2 * Math.PI * 26}`}
+                      strokeDashoffset={`${2 * Math.PI * 26 * (1 - b.pct / 100)}`}
+                      className="transition-all duration-700"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-[13px] font-bold text-gray-900 dark:text-white">{b.pct}%</span>
+                  </div>
                 </div>
+                <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{b.shortName}</p>
+                <p className="text-[10.5px] text-gray-400 dark:text-gray-500">{b.completed}/{b.total}</p>
               </div>
-              <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{b.shortName}</p>
-              <p className="text-[10.5px] text-gray-400 dark:text-gray-500">{b.completed}/{b.total}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="bg-white dark:bg-[#1a1c2b] rounded-2xl border border-gray-100 dark:border-white/5 p-5">
         <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">

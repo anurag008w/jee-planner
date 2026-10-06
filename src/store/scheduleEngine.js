@@ -34,15 +34,15 @@ export const PHASE_DISTINCT = {
 };
 
 export const COMMON_HOLIDAYS = [
-  { date: '2026-09-14', label: 'Common Holiday' },
-  { date: '2026-10-02', label: 'Common Holiday' },
-  { date: '2026-10-20', label: 'Common Holiday' },
-  { date: '2026-11-06', label: 'Common Holiday' },
-  { date: '2026-11-07', label: 'Common Holiday' },
-  { date: '2026-11-09', label: 'Common Holiday' },
-  { date: '2026-11-11', label: 'Common Holiday' },
-  { date: '2026-11-16', label: 'Common Holiday' },
-  { date: '2026-12-25', label: 'Common Holiday' },
+  { date: '2026-09-14', label: 'Orientation' },
+  { date: '2026-10-02', label: 'Gandhi Jayanti' },
+  { date: '2026-10-20', label: 'Dussehra / Vijayadashami' },
+  { date: '2026-11-06', label: 'Diwali Break' },
+  { date: '2026-11-07', label: 'Diwali Break' },
+  { date: '2026-11-09', label: 'Govardhan Puja' },
+  { date: '2026-11-11', label: 'Bhai Dooj' },
+  { date: '2026-11-16', label: 'Chhath Puja' },
+  { date: '2026-12-25', label: 'Christmas' },
 ];
 
 const DEFAULT_CAP = 5;
@@ -56,12 +56,40 @@ function toISODate(date) {
   return `${y}-${m}-${d}`;
 }
 
+function parseLocalDate(dateStr) {
+  if (!dateStr) return new Date();
+  if (dateStr instanceof Date) return new Date(dateStr.getTime());
+  const parts = String(dateStr).split('T')[0].split('-').map(Number);
+  if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+    return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+  }
+  return new Date(dateStr);
+}
+
+function compareIds(a, b) {
+  const an = Number(a);
+  const bn = Number(b);
+  if (Number.isFinite(an) && Number.isFinite(bn)) return an - bn;
+  return String(a || '').localeCompare(String(b || ''));
+}
+
 export function getSundaysBetween(startDate, endDate) {
   const result = [];
-  const cursor = new Date(startDate);
-  const end = new Date(endDate);
+  const cursor = parseLocalDate(startDate);
+  const end = parseLocalDate(endDate);
   while (cursor <= end) {
     if (cursor.getDay() === 0) result.push(toISODate(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return result;
+}
+
+export function getSaturdaysBetween(startDate, endDate) {
+  const result = [];
+  const cursor = parseLocalDate(startDate);
+  const end = parseLocalDate(endDate);
+  while (cursor <= end) {
+    if (cursor.getDay() === 6) result.push(toISODate(cursor));
     cursor.setDate(cursor.getDate() + 1);
   }
   return result;
@@ -70,16 +98,23 @@ export function getSundaysBetween(startDate, endDate) {
 const lectureOrder = (a, b) => {
   const an = Number(a.lectureNumber);
   const bn = Number(b.lectureNumber);
-  const aNum = Number.isFinite(an) && an > 0 ? an : Number.MAX_SAFE_INTEGER;
-  const bNum = Number.isFinite(bn) && bn > 0 ? bn : Number.MAX_SAFE_INTEGER;
+  const aNum = Number.isFinite(an) && an >= 0 ? an : Number.MAX_SAFE_INTEGER;
+  const bNum = Number.isFinite(bn) && bn >= 0 ? bn : Number.MAX_SAFE_INTEGER;
   return aNum - bNum
     || a.newStudyDate.localeCompare(b.newStudyDate)
     || (Number(a.slot) || 0) - (Number(b.slot) || 0)
-    || a.id - b.id;
+    || compareIds(a.id, b.id);
 };
 
-export function computeResolvedSchedule(args) {
-  const { lectures, completions, today, offDays = [], autoShift = true } = args;
+export function computeResolvedSchedule(args = {}) {
+  const {
+    lectures = [],
+    completions = {},
+    today = '',
+    offDays = [],
+    autoShift = true,
+    dailyCap = null,
+  } = args;
   const options = args;
   const offSet = new Set(offDays);
   const completed = (id) => completions[id] === 'completed';
@@ -91,7 +126,7 @@ export function computeResolvedSchedule(args) {
 
   const sortedLectures = [...lectures].sort((a, b) =>
     a.newStudyDate === b.newStudyDate
-      ? (Number(a.slot) || 0) - (Number(b.slot) || 0) || a.id - b.id
+      ? (Number(a.slot) || 0) - (Number(b.slot) || 0) || compareIds(a.id, b.id)
       : a.newStudyDate.localeCompare(b.newStudyDate)
   );
 
@@ -119,9 +154,9 @@ export function computeResolvedSchedule(args) {
 
     let nearest = sortedDates[0];
     let nearestDistance = Infinity;
-    const target = new Date(date).getTime();
+    const target = parseLocalDate(date).getTime();
     for (const candidate of sortedDates) {
-      const distance = Math.abs(new Date(candidate).getTime() - target);
+      const distance = Math.abs(parseLocalDate(candidate).getTime() - target);
       if (distance < nearestDistance) {
         nearestDistance = distance;
         nearest = candidate;
@@ -131,10 +166,16 @@ export function computeResolvedSchedule(args) {
     return nearestLectures?.length ? effPhase(nearestLectures[0]) : 'Phase 4';
   };
 
-  const capacityFor = (date) => offSet.has(date) ? 0 : (PHASE_CAP[phaseFor(date)] || DEFAULT_CAP);
+  const capacityFor = (date) => {
+    if (offSet.has(date)) return 0;
+    if (dailyCap && Number(dailyCap) > 0) return Number(dailyCap);
+    return PHASE_CAP[phaseFor(date)] || DEFAULT_CAP;
+  };
   const distinctTargetFor = (date) => {
     const cap = capacityFor(date);
-    return cap === 0 ? 0 : Math.min(PHASE_DISTINCT[phaseFor(date)] ?? DEFAULT_DISTINCT, cap);
+    if (cap === 0) return 0;
+    if (dailyCap && Number(dailyCap) > 0) return Math.min(DEFAULT_DISTINCT, cap);
+    return Math.min(PHASE_DISTINCT[phaseFor(date)] ?? DEFAULT_DISTINCT, cap);
   };
 
   const makeBacklog = () => sortedLectures.filter((lecture) =>
@@ -240,19 +281,19 @@ export function computeResolvedSchedule(args) {
   const totalEffortUnits = pool.reduce((sum, lecture) => sum + getLectureLoad(lecture), 0);
   let remainingUnits = totalEffortUnits;
 
-  const horizon = new Date(options.horizonDate || lastDate);
+  const horizon = parseLocalDate(options.horizonDate || lastDate);
   const countStudyDays = (from) => {
     let count = 0;
-    for (let cursor = new Date(from); cursor <= horizon; cursor.setDate(cursor.getDate() + 1)) {
+    for (let cursor = parseLocalDate(from); cursor <= horizon; cursor.setDate(cursor.getDate() + 1)) {
       if (!offSet.has(toISODate(cursor))) count += 1;
     }
     return count;
   };
 
-  const end = new Date(lastDate);
+  const end = parseLocalDate(lastDate);
   end.setDate(end.getDate() + 400);
   const dayList = [];
-  for (let cursor = new Date(today); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+  for (let cursor = parseLocalDate(today); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
     dayList.push(toISODate(cursor));
   }
 
@@ -267,7 +308,12 @@ export function computeResolvedSchedule(args) {
 
     const daysLeft = countStudyDays(date);
     const needed = Math.ceil(remainingUnits / Math.max(1, daysLeft));
-    const adaptiveCap = Math.min(phaseCap, Math.max(1, needed));
+    const isAdaptive = options.adaptivePhases !== false;
+    const adaptiveCap = (dailyCap && Number(dailyCap) > 0)
+      ? Number(dailyCap)
+      : isAdaptive
+        ? Math.min(phaseCap, Math.max(1, needed))
+        : phaseCap;
     const backlogActive = pool.some((lecture) => lecture.newStudyDate < today);
     const catchUpFloor = backlogActive ? Math.min(phaseCap, distinctTargetFor(date)) : 0;
     const cap = Math.max(adaptiveCap, catchUpFloor);
@@ -290,7 +336,6 @@ export function computeResolvedSchedule(args) {
     const pick = (predicate) => {
       const candidate = selectable.find((lecture) => {
         if (selectedSet.has(lecture.id)) return false;
-        if (!pool.includes(lecture)) return false;
         if (!isSequenceEligible(lecture)) return false;
         if ((subjectCounts[lecture.subject] || 0) >= 2) return false;
         const load = getLectureLoad(lecture);
@@ -330,8 +375,10 @@ export function computeResolvedSchedule(args) {
   }
 
   if (pool.length > 0) {
-    let cursor = new Date(end);
+    let cursor = parseLocalDate(end);
+    cursor.setDate(cursor.getDate() + 1);
     let overflowDate = toISODate(cursor);
+    const overflowCap = (dailyCap && Number(dailyCap) > 0) ? Number(dailyCap) : DEFAULT_CAP;
     let counts = { total: 0, effort: 0, subjects: {} };
 
     const resetOverflowDay = () => {
@@ -340,12 +387,17 @@ export function computeResolvedSchedule(args) {
       counts = { total: 0, effort: 0, subjects: {} };
     };
 
-    while (pool.length > 0) {
+    let overflowGuard = 0;
+    while (pool.length > 0 && overflowGuard++ < 500) {
+      if (offSet.has(overflowDate)) {
+        resetOverflowDay();
+        continue;
+      }
       const candidate = pool.find((lecture) =>
         isSequenceEligible(lecture)
         && (counts.subjects[lecture.subject] || 0) < 2
-        && counts.effort + getLectureLoad(lecture) <= DEFAULT_CAP + EPS
-        && counts.total < DEFAULT_CAP
+        && counts.effort + getLectureLoad(lecture) <= overflowCap + EPS
+        && counts.total < overflowCap
       );
 
       if (!candidate) {
@@ -357,6 +409,7 @@ export function computeResolvedSchedule(args) {
       pool.splice(pool.indexOf(candidate), 1);
       counts.total += 1;
       counts.effort += load;
+      remainingUnits -= load;
       counts.subjects[candidate.subject] = (counts.subjects[candidate.subject] || 0) + 1;
       resolved[candidate.id] = {
         resolvedDate: overflowDate,
@@ -386,7 +439,7 @@ export function computeResolvedSchedule(args) {
       || (a.newStudyDate === b.newStudyDate
         ? (Number(a.slot) || 0) - (Number(b.slot) || 0)
         : a.newStudyDate.localeCompare(b.newStudyDate))
-      || a.id - b.id
+      || compareIds(a.id, b.id)
     );
   });
 
