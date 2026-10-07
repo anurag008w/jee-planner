@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import useStore from '../store/useStore';
 import LectureCard from '../components/LectureCard';
+import LectureAdjustModal from '../components/LectureAdjustModal';
 import OffDayCatchUp from '../components/OffDayCatchUp';
 import { formatDateFull, formatDateShort, getSubjectColor } from '../utils/helpers';
 import { ChevronLeft, ChevronRight, Calendar, X, CalendarOff, CalendarCheck2, AlertTriangle, PartyPopper } from 'lucide-react';
@@ -22,13 +23,15 @@ const dotTitle = (l) => {
 };
 
 export default function CalendarPage() {
-  const { completions, schedule, settings, commonHolidays, toggleOffDay, setSundaysOff, setAllCommonHolidays, lectures } = useStore();
+  const { completions, schedule, settings, commonHolidays, toggleOffDay, setSundaysOff, setSaturdaysOff, setAllCommonHolidays, lectures } = useStore();
+  const [adjustingLecture, setAdjustingLecture] = useState(null);
   const today = schedule.today;
   const dayMap = schedule.dayMap || {};
   const offSet = new Set(settings.offDays || []);
   const missedSet = new Set(schedule.missedDates || []);
 
   const sundaysOff = settings.offDays.some(d => new Date(d).getDay() === 0);
+  const saturdaysOff = (settings.offDays || []).some(d => new Date(d).getDay() === 6);
   const allHolidaysOff = commonHolidays.every(h => settings.offDays.includes(h.date));
 
   const [viewDate, setViewDate] = useState(() => {
@@ -162,6 +165,18 @@ export default function CalendarPage() {
           title={sundaysOff ? 'Sundays ko study day banao' : 'Sundays ko off day banao'}
         >
           {sundaysOff ? 'Sundays: Off' : 'Sundays: Study'}
+        </button>
+        <button
+          onClick={() => setSaturdaysOff(!saturdaysOff)}
+          aria-pressed={saturdaysOff}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11.5px] font-semibold border transition-all ${
+            saturdaysOff
+              ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+              : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+          }`}
+          title={saturdaysOff ? 'Saturdays ko study day banao' : 'Saturdays ko off day banao'}
+        >
+          {saturdaysOff ? 'Saturdays: Off' : 'Saturdays: Study'}
         </button>
         <button
           onClick={() => setAllCommonHolidays(!allHolidaysOff)}
@@ -362,7 +377,14 @@ export default function CalendarPage() {
               ) : (
                 <div className="border-t border-gray-100 dark:border-white/5 pt-4 space-y-2">
                   {selectedDayLectures.map(l => (
-                    <LectureCard key={l.id} lecture={l} compact showTimeline showOriginal />
+                    <LectureCard
+                      key={l.id}
+                      lecture={l}
+                      compact
+                      showTimeline
+                      showOriginal
+                      onAdjust={(lec) => setAdjustingLecture(lec)}
+                    />
                   ))}
                   {selectedDayLectures.some(l => l.isBacklog) && (
                     <p className="text-[10.5px] text-red-500/80 flex items-center gap-1 pt-1">
@@ -386,6 +408,13 @@ export default function CalendarPage() {
           )}
         </div>
       </div>
+
+      {adjustingLecture && (
+        <LectureAdjustModal
+          lecture={adjustingLecture}
+          onClose={() => setAdjustingLecture(null)}
+        />
+      )}
     </div>
   );
 }

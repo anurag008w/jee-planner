@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import useStore from '../store/useStore';
 import { shiftLecturesToStartDate } from '../store/scheduleDateUtils';
 import LectureCard from '../components/LectureCard';
+import LectureAdjustModal from '../components/LectureAdjustModal';
 import { formatDate } from '../utils/helpers';
 import { Filter, Search, X, ListOrdered, CalendarClock, Inbox, SlidersHorizontal } from 'lucide-react';
 
@@ -10,6 +11,7 @@ export default function MasterSchedulePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [view, setView] = useState('resolved'); // 'resolved' | 'original'
+  const [adjustingLecture, setAdjustingLecture] = useState(null);
 
   const batchOriginalStartDate = useMemo(() => {
     const dates = [...new Set(lectures.map((l) => l.newStudyDate))].filter(Boolean).sort();
@@ -252,12 +254,20 @@ export default function MasterSchedulePage() {
                     showTimeline
                     showDate={view === 'resolved'}
                     showOriginal={view === 'resolved'}
+                    onAdjust={(lec) => setAdjustingLecture(lec)}
                   />
                 ))}
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {adjustingLecture && (
+        <LectureAdjustModal
+          lecture={adjustingLecture}
+          onClose={() => setAdjustingLecture(null)}
+        />
       )}
     </div>
   );

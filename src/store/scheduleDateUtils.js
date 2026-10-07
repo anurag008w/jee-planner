@@ -61,3 +61,18 @@ export function shiftSundayOffDays(offDays, originalStartDate, originalEndDate, 
 
   return [...new Set([...fixedOffDays, ...nextSundays])].sort();
 }
+
+export function getNextStudyDate(currentDateStr, offDays = []) {
+  if (!currentDateStr) return '';
+  const offSet = new Set(offDays || []);
+  const cursor = parseDate(currentDateStr);
+  cursor.setDate(cursor.getDate() + 1);
+  for (let i = 0; i < 45; i++) {
+    const dStr = toISODate(cursor);
+    if (!offSet.has(dStr)) {
+      return dStr;
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return toISODate(cursor);
+}

@@ -3,7 +3,7 @@ import useStore from '../store/useStore';
 import { getSubjectColor, getBranchColor, formatDateShort } from '../utils/helpers';
 import { getChapterStrategy } from '../data/chapterStrategy';
 import { getChapterPairing, SUBJECT_FOUNDATIONS } from '../data/chapterPairing';
-import { ArrowUpDown, ChevronDown, ChevronUp, GraduationCap, Inbox, SlidersHorizontal } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, ChevronUp, GraduationCap, Inbox, SlidersHorizontal, RotateCcw } from 'lucide-react';
 
 const STRATEGY_FILTERS = ['All', 'FULL', 'ONE SHOT', 'ONE SHOT + PYQ', 'ONE SHOT + NCERT + PYQ'];
 
@@ -18,8 +18,8 @@ const SortIcon = ({ field, sortBy, sortDir }) => (
 export default function ChapterProgressPage() {
   const {
     lectures, completions, chapterProgress, settings,
-    setChapterPhase, resetChapterPhases, chapterPairing: batchPairings,
-    foundations: batchFoundations
+    setChapterPhase, resetChapterPhases, moveChapter, resetChapterOrder,
+    chapterPairing: batchPairings, foundations: batchFoundations
   } = useStore();
   const [sortBy, setSortBy] = useState('current');
   const [sortDir, setSortDir] = useState('asc');
@@ -27,6 +27,7 @@ export default function ChapterProgressPage() {
   const [filterClass, setFilterClass] = useState('All');
   const [filterStrategy, setFilterStrategy] = useState('All');
   const [foundationOpen, setFoundationOpen] = useState(false);
+  const [reorderMode, setReorderMode] = useState(false);
 
   const distinctSubjects = useMemo(() => {
     const set = new Set();
@@ -112,6 +113,22 @@ export default function ChapterProgressPage() {
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
+    if (reorderMode) {
+      const customList = (settings.chapterOrder && settings.chapterOrder[filterSubject]) || [];
+      if (customList.length > 0) {
+        const rank = new Map(customList.map((name, i) => [name, i]));
+        arr.sort((a, b) => {
+          const ra = rank.has(a.chapter) ? rank.get(a.chapter) : 9999;
+          const rb = rank.has(b.chapter) ? rank.get(b.chapter) : 9999;
+          if (ra !== rb) return ra - rb;
+          return a.sortOrder.localeCompare(b.sortOrder);
+        });
+        return arr;
+      }
+      arr.sort((a, b) => a.sortOrder.localeCompare(b.sortOrder));
+      return arr;
+    }
+
     switch (sortBy) {
       case 'current':
         arr.sort((a, b) => (a.isAllDone ? 1 : 0) - (b.isAllDone ? 1 : 0) || a.sortOrder.localeCompare(b.sortOrder));
@@ -129,7 +146,7 @@ export default function ChapterProgressPage() {
         break;
     }
     return arr;
-  }, [filtered, sortBy, sortDir]);
+  }, [filtered, sortBy, sortDir, reorderMode, settings.chapterOrder, filterSubject]);
 
   const toggleSort = (field) => {
     if (sortBy === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -294,6 +311,26 @@ export default function ChapterProgressPage() {
           </button>
         ))}
 
+        <button
+          onClick={() => {
+            const next = !reorderMode;
+            setReorderMode(next);
+            if (next && filterSubject === 'All') {
+              setFilterSubject('Chemistry');
+            }
+          }}
+          aria-pressed={reorderMode}
+          className={`min-h-[34px] px-3 py-1.5 rounded-lg text-[11.5px] font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
+            reorderMode
+              ? 'bg-purple-600 text-white border-purple-600 shadow-purple-500/20'
+              : 'bg-white dark:bg-[#1a1c2b] text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800/40 hover:bg-purple-50 dark:hover:bg-purple-900/20'
+          }`}
+          title="Chapters ko upar/niche reorder karein"
+        >
+          <ArrowUpDown size={13} />
+          {reorderMode ? 'Reorder Mode: ON' : '⇅ Reorder'}
+        </button>
+
         <div className="flex items-center gap-2 ml-auto flex-wrap">
           {classCounts.hasBoth && (
             <select
@@ -321,7 +358,11 @@ export default function ChapterProgressPage() {
             value={filterSubject}
             onChange={(e) => setFilterSubject(e.target.value)}
             aria-label="Filter by subject"
-            className="px-3 py-1.5 rounded-lg text-[11.5px] font-medium bg-white dark:bg-[#1a1c2b] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-white/10 outline-none cursor-pointer"
+            className={`px-3 py-1.5 rounded-lg text-[11.5px] font-semibold border outline-none cursor-pointer transition-colors ${
+              reorderMode && filterSubject !== 'All'
+                ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800'
+                : 'bg-white dark:bg-[#1a1c2b] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-white/10'
+            }`}
           >
             <option value="All">All Subjects</option>
             {distinctSubjects.map(s => (
@@ -330,6 +371,54 @@ export default function ChapterProgressPage() {
           </select>
         </div>
       </div>
+
+      {reorderMode && (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 border border-purple-200/80 dark:border-purple-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold text-base shadow-md shadow-purple-500/20 shrink-0">
+              ⇅
+            </div>
+            <div>
+              <p className="text-[13px] font-bold text-purple-950 dark:text-purple-200">
+                Chapter Reordering Mode Active {filterSubject !== 'All' && `• ${filterSubject}`}
+              </p>
+              <p className="text-[11px] text-purple-800/80 dark:text-purple-300/80">
+                Har chapter par <strong>▲ Up</strong> aur <strong>▼ Down</strong> button se sequence badlein. Batch schedule instantly re-calculate ho jayega.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap sm:ml-auto">
+            <div className="flex items-center gap-1 bg-white/70 dark:bg-black/20 p-1 rounded-xl border border-purple-200/50 dark:border-purple-800/30">
+              {distinctSubjects.map(s => (
+                <button
+                  key={s}
+                  onClick={() => {
+                    setFilterSubject(s);
+                    setFilterClass('All');
+                    setFilterStrategy('All');
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                    filterSubject === s
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'text-purple-700 dark:text-purple-300 hover:bg-purple-100/50 dark:hover:bg-purple-900/30'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+            {settings.chapterOrder && Object.keys(settings.chapterOrder).length > 0 && (
+              <button
+                onClick={() => resetChapterOrder(filterSubject !== 'All' ? filterSubject : null)}
+                className="min-h-[32px] px-3 py-1 rounded-xl bg-white dark:bg-white/10 text-red-600 dark:text-red-400 hover:bg-red-50 text-[11px] font-bold border border-red-200 dark:border-red-800/40 flex items-center gap-1.5 shadow-sm transition-all"
+              >
+                <RotateCcw size={12} />
+                Reset Order
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2">
         {sorted.length === 0 && (
@@ -349,7 +438,7 @@ export default function ChapterProgressPage() {
             </button>
           </div>
         )}
-        {sorted.map((chapter) => {
+        {sorted.map((chapter, idx) => {
           const subjectColor = getSubjectColor(chapter.subject);
           const branchColor = chapter.chemistryBranch ? getBranchColor(chapter.chemistryBranch) : null;
 
@@ -395,9 +484,37 @@ export default function ChapterProgressPage() {
                   </div>
                   <h3 className="text-[13.5px] font-semibold text-gray-900 dark:text-white truncate">{chapter.chapter}</h3>
                 </div>
-                <span className={`text-[14px] font-bold flex-shrink-0 ${chapter.isAllDone ? 'text-green-600 dark:text-green-400' : 'text-gray-700 dark:text-gray-300'}`}>
-                  {chapter.pct}%
-                </span>
+                {reorderMode ? (
+                  <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <span className="text-[11px] font-bold px-2 py-1 rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40">
+                      #{idx + 1}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => moveChapter(chapter.subject, chapter.chapter, 'up')}
+                        disabled={idx === 0}
+                        className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-gray-700 dark:text-gray-200 disabled:opacity-25 disabled:pointer-events-none flex items-center justify-center transition-all active:scale-90 border border-gray-200 dark:border-white/10"
+                        title="Chapter upar karo"
+                        aria-label={`Move ${chapter.chapter} up`}
+                      >
+                        <ChevronUp size={18} />
+                      </button>
+                      <button
+                        onClick={() => moveChapter(chapter.subject, chapter.chapter, 'down')}
+                        disabled={idx === sorted.length - 1}
+                        className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-gray-700 dark:text-gray-200 disabled:opacity-25 disabled:pointer-events-none flex items-center justify-center transition-all active:scale-90 border border-gray-200 dark:border-white/10"
+                        title="Chapter niche karo"
+                        aria-label={`Move ${chapter.chapter} down`}
+                      >
+                        <ChevronDown size={18} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <span className={`text-[14px] font-bold flex-shrink-0 ${chapter.isAllDone ? 'text-green-600 dark:text-green-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                    {chapter.pct}%
+                  </span>
+                )}
               </div>
 
               <div className="w-full h-2 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden mb-2">

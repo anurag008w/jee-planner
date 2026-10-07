@@ -1,9 +1,9 @@
 import useStore from '../store/useStore';
 import { getSubjectColor, getBranchColor, getPhaseColor, formatDate } from '../utils/helpers';
 import { getLectureLoad } from '../data/chapterStrategy';
-import { Check, Clock, ChevronRight, BookOpen } from 'lucide-react';
+import { Check, Clock, ChevronRight, BookOpen, ArrowLeftRight } from 'lucide-react';
 
-export default function LectureCard({ lecture, compact = false, showDate = false, showTimeline = false, showOriginal = false }) {
+export default function LectureCard({ lecture, compact = false, showDate = false, showTimeline = false, showOriginal = false, onAdjust }) {
   const { toggleComplete, completions, setSelectedLecture } = useStore();
   const status = completions[lecture.id] || 'not_started';
   const isCompleted = status === 'completed';
@@ -161,7 +161,7 @@ export default function LectureCard({ lecture, compact = false, showDate = false
           </p>
         </div>
 
-        <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-white/5">
+        <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-white/5 gap-2 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
               <div className="w-5 h-5 rounded-md bg-gray-100 dark:bg-white/5 flex items-center justify-center text-[10px] font-bold text-gray-500 dark:text-gray-400">
@@ -172,17 +172,32 @@ export default function LectureCard({ lecture, compact = false, showDate = false
               </span>
             </div>
           </div>
-          {showDate && (
-            <span className={`text-[11px] flex items-center gap-1 ${isBacklog ? 'text-red-500 font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>
-              <Clock size={11} />
-              {formatDate(displayDate)}
-              {shiftedFromOriginal && (
-                <span className="text-[9.5px] text-gray-400 dark:text-gray-600 font-normal">
-                  (orig {formatDate(lecture.newStudyDate)})
-                </span>
-              )}
-            </span>
-          )}
+          <div className="flex items-center gap-2 ml-auto">
+            {showDate && (
+              <span className={`text-[11px] flex items-center gap-1 ${isBacklog ? 'text-red-500 font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>
+                <Clock size={11} />
+                {formatDate(displayDate)}
+                {shiftedFromOriginal && (
+                  <span className="text-[9.5px] text-gray-400 dark:text-gray-600 font-normal">
+                    (orig {formatDate(lecture.newStudyDate)})
+                  </span>
+                )}
+              </span>
+            )}
+            {onAdjust && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAdjust(lecture);
+                }}
+                className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40 flex items-center justify-center transition-all active:scale-90 shadow-sm"
+                title="Adjust / Switch lecture"
+                aria-label="Adjust or switch lecture"
+              >
+                <ArrowLeftRight size={14} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

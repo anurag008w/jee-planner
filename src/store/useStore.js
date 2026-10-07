@@ -4,7 +4,7 @@ import dataset from '../data/dataset.json' with { type: 'json' };
 import mission100Dataset from '../data/mission100Dataset.json' with { type: 'json' };
 import { computeResolvedSchedule, getSundaysBetween, getSaturdaysBetween, COMMON_HOLIDAYS } from './scheduleEngine.js';
 import { getToday, detectChapterClass } from '../utils/helpers.js';
-import { shiftLecturesToStartDate, shiftSundayOffDays } from './scheduleDateUtils.js';
+import { shiftLecturesToStartDate, shiftSundayOffDays, getNextStudyDate } from './scheduleDateUtils.js';
 import {
   buildLecturesWithExtras,
   compareLectureIds,
@@ -51,6 +51,8 @@ export function getDefaultBatchSettings(startDate, endDate) {
     dailyCap: null,
     phaseRanges: null,
     chapterPhases: {},
+    chapterOrder: {},
+    manualOverrides: {},
   };
 }
 
@@ -201,6 +203,113 @@ const enforceLectureOrder = (schedule, lectures, completions) => {
   return schedule;
 };
 
+export function applyChapterOrderToLectures(lectures = [], chapterOrder = {}) {
+  if (!chapterOrder || Object.keys(chapterOrder).length === 0) return lectures;
+
+  let result = [...lectures];
+  Object.entries(chapterOrder).forEach(([subject, customChapters]) => {
+    if (!Array.isArray(customChapters) || customChapters.length === 0) return;
+
+    const subjectLectures = result.filter((l) => l.subject === subject);
+    if (subjectLectures.length === 0) return;
+
+    const sortedOriginal = [...subjectLectures].sort(
+      (a, b) =>
+        a.newStudyDate.localeCompare(b.newStudyDate) ||
+        (Number(a.slot) || 0) - (Number(b.slot) || 0) ||
+        compareLectureIds(a.id, b.id)
+    );
+    const slots = sortedOriginal.map((l) => ({
+      newStudyDate: l.newStudyDate,
+      day: l.day,
+      slot: l.slot,
+      phase: l.phase,
+      originalDate: l.originalDate,
+      timings: l.timings,
+    }));
+
+    const chapterRank = new Map(customChapters.map((c, i) => [c, i]));
+    const reordered = [...subjectLectures].sort((a, b) => {
+      const ra = chapterRank.has(a.chapterName) ? chapterRank.get(a.chapterName) : 9999;
+      const rb = chapterRank.has(b.chapterName) ? chapterRank.get(b.chapterName) : 9999;
+      if (ra !== rb) return ra - rb;
+      return (
+        (Number(a.lectureNumber) || 0) - (Number(b.lectureNumber) || 0) ||
+        compareLectureIds(a.id, b.id)
+      );
+    });
+
+    const reorderedWithSlots = reordered.map((l, i) => ({
+      ...l,
+      ...(slots[i] || {}),
+    }));
+
+    const reorderedMap = new Map(reorderedWithSlots.map((l) => [String(l.id), l]));
+    result = result.map((l) => reorderedMap.get(String(l.id)) || l);
+  });
+
+  return result;
+}
+
+export function applyManualOverrides(schedule, manualOverrides = {}, lectures = []) {
+  if (!manualOverrides || Object.keys(manualOverrides).length === 0) return schedule;
+
+  const lectureMap = new Map(lectures.map((l) => [String(l.id), l]));
+  const today = schedule.today || getToday();
+
+  Object.entries(manualOverrides).forEach(([idStr, override]) => {
+    if (!override || !override.resolvedDate) return;
+    const lecture = lectureMap.get(String(idStr));
+    if (!lecture) return;
+
+    const oldMeta = schedule.resolved[lecture.id];
+    const oldDate = oldMeta?.resolvedDate;
+
+    if (oldDate && schedule.dayMap[oldDate]) {
+      schedule.dayMap[oldDate] = schedule.dayMap[oldDate].filter(
+        (l) => String(l.id) !== String(lecture.id)
+      );
+    }
+
+    const isBacklog = override.resolvedDate < today;
+    schedule.resolved[lecture.id] = {
+      resolvedDate: override.resolvedDate,
+      isBacklog,
+    };
+
+    if (!schedule.dayMap[override.resolvedDate]) {
+      schedule.dayMap[override.resolvedDate] = [];
+    }
+
+    const item = {
+      ...lecture,
+      resolvedDate: override.resolvedDate,
+      slot: override.slot !== undefined ? override.slot : lecture.slot,
+      isBacklog,
+    };
+
+    const existingIdx = schedule.dayMap[override.resolvedDate].findIndex(
+      (l) => String(l.id) === String(lecture.id)
+    );
+    if (existingIdx >= 0) {
+      schedule.dayMap[override.resolvedDate][existingIdx] = item;
+    } else {
+      schedule.dayMap[override.resolvedDate].push(item);
+    }
+  });
+
+  Object.values(schedule.dayMap).forEach((items) => {
+    items.sort(
+      (a, b) =>
+        (Number(a.slot) || 0) - (Number(b.slot) || 0) ||
+        (Number(a.lectureNumber) || 0) - (Number(b.lectureNumber) || 0) ||
+        compareLectureIds(a.id, b.id)
+    );
+  });
+
+  return schedule;
+}
+
 const computeBatchSchedule = (
   batch,
   completions = {},
@@ -212,7 +321,8 @@ const computeBatchSchedule = (
   const startDate = settings.startDate || origStart;
   const today = settings.previewDate || getToday();
   const combinedLectures = buildLecturesWithExtras(batchLectures, extraLectureCounts);
-  const scheduledLectures = shiftLecturesToStartDate(combinedLectures, origStart, startDate);
+  const chapterOrderedLectures = applyChapterOrderToLectures(combinedLectures, settings.chapterOrder);
+  const scheduledLectures = shiftLecturesToStartDate(chapterOrderedLectures, origStart, startDate);
 
   const completedToday = scheduledLectures
     .filter((lecture) => completions[lecture.id] === 'completed' && lecture.newStudyDate === today)
@@ -260,6 +370,8 @@ const computeBatchSchedule = (
       enforced.resolved[lecture.id] = { resolvedDate: today, isBacklog: false };
     });
   }
+
+  applyManualOverrides(enforced, settings.manualOverrides, scheduledLectures);
 
   return enforced;
 };
@@ -583,10 +695,15 @@ const useStore = create(
             activeBatch.settings,
             activeBatch.extraLectureCounts
           );
-          const lectures = buildLecturesWithExtras(
+          const baseLectures = buildLecturesWithExtras(
             activeBatch.lectures || [],
             activeBatch.extraLectureCounts || {}
           );
+          const lectures = applyChapterOrderToLectures(
+            baseLectures,
+            activeBatch.settings?.chapterOrder
+          );
+          const chapterProgress = deriveChapterProgress(lectures);
 
           if (opts.freezeToday) {
             const prevPlan =
@@ -611,7 +728,7 @@ const useStore = create(
             schedule: { ...schedule, today },
             lectures,
             dashboard: activeBatch.dashboard,
-            chapterProgress: activeBatch.chapterProgress,
+            chapterProgress,
             foundations: activeBatch.foundations || activeBatch.subjectFoundations || null,
             chapterPairing: activeBatch.chapterPairing || activeBatch.chapterPairings || null,
             completions: activeBatch.completions,
@@ -790,6 +907,177 @@ const useStore = create(
           get().updateActiveBatchState((batch) => ({
             ...batch,
             settings: { ...batch.settings, chapterPhases: {} },
+          }));
+        },
+
+        // -------------------------------------------------------------------
+        // Chapter Reordering Actions
+        // -------------------------------------------------------------------
+        moveChapter: (subject, chapterName, direction) => {
+          get().updateActiveBatchState((batch) => {
+            const subjectLectures = (batch.lectures || []).filter(
+              (l) => l.subject === subject
+            );
+            if (subjectLectures.length === 0) return batch;
+
+            const existingOrder = batch.settings?.chapterOrder?.[subject];
+            let chapters = Array.isArray(existingOrder) && existingOrder.length > 0
+              ? [...existingOrder]
+              : [];
+
+            if (chapters.length === 0) {
+              const seen = new Set();
+              const sorted = [...subjectLectures].sort(
+                (a, b) =>
+                  a.newStudyDate.localeCompare(b.newStudyDate) ||
+                  (Number(a.slot) || 0) - (Number(b.slot) || 0) ||
+                  compareLectureIds(a.id, b.id)
+              );
+              sorted.forEach((l) => {
+                if (l.chapterName && !seen.has(l.chapterName)) {
+                  seen.add(l.chapterName);
+                  chapters.push(l.chapterName);
+                }
+              });
+            }
+
+            const index = chapters.indexOf(chapterName);
+            if (index < 0) return batch;
+
+            if (direction === 'up' && index > 0) {
+              const temp = chapters[index];
+              chapters[index] = chapters[index - 1];
+              chapters[index - 1] = temp;
+            } else if (direction === 'down' && index < chapters.length - 1) {
+              const temp = chapters[index];
+              chapters[index] = chapters[index + 1];
+              chapters[index + 1] = temp;
+            } else {
+              return batch;
+            }
+
+            return {
+              ...batch,
+              settings: {
+                ...batch.settings,
+                chapterOrder: {
+                  ...(batch.settings?.chapterOrder || {}),
+                  [subject]: chapters,
+                },
+              },
+            };
+          });
+        },
+
+        resetChapterOrder: (subject) => {
+          get().updateActiveBatchState((batch) => {
+            if (!batch.settings?.chapterOrder) return batch;
+            const newOrder = { ...batch.settings.chapterOrder };
+            if (subject) {
+              delete newOrder[subject];
+            } else {
+              Object.keys(newOrder).forEach((k) => delete newOrder[k]);
+            }
+            return {
+              ...batch,
+              settings: {
+                ...batch.settings,
+                chapterOrder: newOrder,
+              },
+            };
+          });
+        },
+
+        // -------------------------------------------------------------------
+        // Lecture Adjust / Swap Actions
+        // -------------------------------------------------------------------
+        shiftLectureToTomorrow: (lectureId) => {
+          const s = get();
+          const today = s.schedule?.today || getToday();
+          const nextDate = getNextStudyDate(today, s.settings?.offDays || []);
+          if (!nextDate) return;
+
+          get().updateActiveBatchState((batch) => {
+            const manualOverrides = { ...(batch.settings?.manualOverrides || {}) };
+            manualOverrides[lectureId] = {
+              resolvedDate: nextDate,
+            };
+            return {
+              ...batch,
+              settings: {
+                ...batch.settings,
+                manualOverrides,
+              },
+            };
+          });
+        },
+
+        swapLectures: (sourceId, targetId) => {
+          const s = get();
+          const schedule = s.schedule;
+          if (!schedule || !sourceId || !targetId || sourceId === targetId) return;
+
+          const sourceMeta = schedule.resolved?.[sourceId];
+          const targetMeta = schedule.resolved?.[targetId];
+          if (!sourceMeta || !targetMeta) return;
+
+          const findLectureItem = (id, date) => {
+            const list = schedule.dayMap?.[date] || [];
+            return list.find((l) => String(l.id) === String(id));
+          };
+
+          const sourceItem = findLectureItem(sourceId, sourceMeta.resolvedDate);
+          const targetItem = findLectureItem(targetId, targetMeta.resolvedDate);
+
+          const sourceSlot = sourceItem?.slot;
+          const targetSlot = targetItem?.slot;
+
+          get().updateActiveBatchState((batch) => {
+            const manualOverrides = { ...(batch.settings?.manualOverrides || {}) };
+            manualOverrides[sourceId] = {
+              resolvedDate: targetMeta.resolvedDate,
+              slot: targetSlot,
+            };
+            manualOverrides[targetId] = {
+              resolvedDate: sourceMeta.resolvedDate,
+              slot: sourceSlot,
+            };
+            return {
+              ...batch,
+              settings: {
+                ...batch.settings,
+                manualOverrides,
+              },
+            };
+          });
+        },
+
+        reorderTodayLectures: (sourceId, targetId) => {
+          get().swapLectures(sourceId, targetId);
+        },
+
+        resetLectureAdjustment: (lectureId) => {
+          get().updateActiveBatchState((batch) => {
+            if (!batch.settings?.manualOverrides?.[lectureId]) return batch;
+            const manualOverrides = { ...batch.settings.manualOverrides };
+            delete manualOverrides[lectureId];
+            return {
+              ...batch,
+              settings: {
+                ...batch.settings,
+                manualOverrides,
+              },
+            };
+          });
+        },
+
+        resetAllManualAdjustments: () => {
+          get().updateActiveBatchState((batch) => ({
+            ...batch,
+            settings: {
+              ...batch.settings,
+              manualOverrides: {},
+            },
           }));
         },
 

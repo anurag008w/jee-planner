@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import useStore from '../store/useStore';
 import LectureCard from '../components/LectureCard';
+import LectureAdjustModal from '../components/LectureAdjustModal';
 import OffDayCatchUp from '../components/OffDayCatchUp';
 import ProgressBar from '../components/ProgressBar';
 import { getToday, formatDateFull, getGreeting, formatDateShort, getSubjectColor } from '../utils/helpers';
@@ -12,6 +13,7 @@ import {
 export default function TodayPage() {
   const { lectures, completions, schedule, settings } = useStore();
   const [backlogOpen, setBacklogOpen] = useState(false);
+  const [adjustLecture, setAdjustLecture] = useState(null);
 
   const today = schedule.today;
   const todayPlan = (schedule.dayMap && schedule.dayMap[today]) || [];
@@ -117,7 +119,28 @@ export default function TodayPage() {
           <div className="animate-fadeIn stagger-3">
             <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Calendar size={16} className="text-indigo-500"/>Today's Lectures{todayPlan.some(l => l.isBacklog) && <span className="text-[10.5px] font-semibold text-red-500 flex items-center gap-1"><AlertTriangle size={12}/>backlog pehle</span>}<span className="ml-auto text-[10.5px] font-bold px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300 whitespace-nowrap">{todayPlan.length} L · {(schedule.dayLoad?.[today] || 0).toFixed(1)}/{schedule.dayCap?.[today] || 0} effort</span></h3>
             <div className="space-y-3">
-              {todayPlan.map((lecture, idx) => <div key={lecture.id} className="relative pl-8">{idx < todayPlan.length - 1 && <div className="absolute left-[11px] top-12 bottom-0 w-0.5 bg-gray-200 dark:bg-white/10"/>}<div className={`absolute left-0 top-4 w-6 h-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${completions[lecture.id]==='completed'?'bg-green-500 border-green-500 text-white':lecture.isBacklog?'bg-red-500 border-red-500 text-white':'bg-white dark:bg-[#1a1c2b] border-indigo-300 dark:border-indigo-600 text-indigo-600 dark:text-indigo-400'}`}>{lecture.slot}</div><LectureCard lecture={lecture} showTimeline showOriginal/></div>)}
+              {todayPlan.map((lecture, idx) => (
+                <div key={lecture.id} className="relative pl-8">
+                  {idx < todayPlan.length - 1 && (
+                    <div className="absolute left-[11px] top-12 bottom-0 w-0.5 bg-gray-200 dark:bg-white/10" />
+                  )}
+                  <div className={`absolute left-0 top-4 w-6 h-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${
+                    completions[lecture.id] === 'completed'
+                      ? 'bg-green-500 border-green-500 text-white'
+                      : lecture.isBacklog
+                      ? 'bg-red-500 border-red-500 text-white'
+                      : 'bg-white dark:bg-[#1a1c2b] border-indigo-300 dark:border-indigo-600 text-indigo-600 dark:text-indigo-400'
+                  }`}>
+                    {lecture.slot}
+                  </div>
+                  <LectureCard
+                    lecture={lecture}
+                    showTimeline
+                    showOriginal
+                    onAdjust={(l) => setAdjustLecture(l)}
+                  />
+                </div>
+              ))}
             </div>
           </div>
         </>
@@ -125,9 +148,9 @@ export default function TodayPage() {
 
       {!isOffDay && todayPlan.length === 0 && <div className="animate-fadeIn stagger-2 text-center py-12"><div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center"><CheckCircle2 size={32} className="text-indigo-500"/></div><h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Nothing Scheduled Today</h3><p className="text-[13px] text-gray-500 dark:text-gray-400 max-w-sm mx-auto">{backlog.length > 0 ? `${backlog.length} backlog lecture${backlog.length > 1 ? 's' : ''} pending — clear them from the backlog pool below!` : 'Sab plan ke hisaab se on-track hai. 💪'}</p></div>}
 
-      {backlog.length > 0 && <div className="animate-fadeIn stagger-4 card-surface overflow-hidden"><button onClick={() => setBacklogOpen(o => !o)} aria-expanded={backlogOpen} className="w-full px-4 py-3 text-left"><span className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"/><span className="flex-1 min-w-0 text-[13.5px] font-bold text-gray-900 dark:text-white truncate">Backlog</span><ChevronRight size={16} className={`text-gray-400 shrink-0 transition-transform ${backlogOpen ? 'rotate-90' : ''}`}/></span><span className="flex items-center gap-2 mt-1 pl-[14px]"><span className="flex-1 text-[11px] text-gray-400 truncate">{backlog.length} pending · {backlog.length} lecture{backlog.length !== 1 ? 's' : ''}</span><span className="inline-flex items-center gap-1 px-1.5 py-px rounded-md border border-red-200 dark:border-red-500/30 text-[9px] font-bold tracking-wider text-red-500"><span className="w-1 h-1 rounded-full bg-red-500"/>RED ZONE</span></span></button><div className={`grid transition-all duration-200 ${backlogOpen?'grid-rows-[1fr] opacity-100':'grid-rows-[0fr] opacity-0'}`}><div className="overflow-hidden"><div className="px-3 pb-3 pt-1 space-y-1.5 border-t border-gray-100 dark:border-white/5"><p className="px-1 pt-2 text-[10.5px] text-gray-400">Oldest lectures first</p>{backlog.map(l=><LectureCard key={l.id} lecture={{...l,isBacklog:true}} compact showDate showOriginal/>)}</div></div></div></div>}
+      {backlog.length > 0 && <div className="animate-fadeIn stagger-4 card-surface overflow-hidden"><button onClick={() => setBacklogOpen(o => !o)} aria-expanded={backlogOpen} className="w-full px-4 py-3 text-left"><span className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"/><span className="flex-1 min-w-0 text-[13.5px] font-bold text-gray-900 dark:text-white truncate">Backlog</span><ChevronRight size={16} className={`text-gray-400 shrink-0 transition-transform ${backlogOpen ? 'rotate-90' : ''}`}/></span><span className="flex items-center gap-2 mt-1 pl-[14px]"><span className="flex-1 text-[11px] text-gray-400 truncate">{backlog.length} pending · {backlog.length} lecture{backlog.length !== 1 ? 's' : ''}</span><span className="inline-flex items-center gap-1 px-1.5 py-px rounded-md border border-red-200 dark:border-red-500/30 text-[9px] font-bold tracking-wider text-red-500"><span className="w-1 h-1 rounded-full bg-red-500"/>RED ZONE</span></span></button><div className={`grid transition-all duration-200 ${backlogOpen?'grid-rows-[1fr] opacity-100':'grid-rows-[0fr] opacity-0'}`}><div className="overflow-hidden"><div className="px-3 pb-3 pt-1 space-y-1.5 border-t border-gray-100 dark:border-white/5"><p className="px-1 pt-2 text-[10.5px] text-gray-400">Oldest lectures first</p>{backlog.map(l=><LectureCard key={l.id} lecture={{...l,isBacklog:true}} compact showDate showOriginal onAdjust={(lec) => setAdjustLecture(lec)}/>)}</div></div></div></div>}
 
-      {tomorrowLectures.length > 0 && <div className="animate-fadeIn stagger-5"><h3 className="text-[14px] font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><ChevronRight size={16} className="text-purple-500"/>Up Next — {formatDateShort(tomorrow)}<span className="text-[11px] font-normal text-gray-400 ml-1">{tomorrowLectures.length} lecture{tomorrowLectures.length > 1 ? 's' : ''}{tomorrowLectures.some(l=>l.isBacklog) && ' • backlog'}</span></h3><div className="space-y-2">{tomorrowLectures.slice(0,3).map(l=><LectureCard key={l.id} lecture={l} compact showDate/>)}</div></div>}
+      {tomorrowLectures.length > 0 && <div className="animate-fadeIn stagger-5"><h3 className="text-[14px] font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><ChevronRight size={16} className="text-purple-500"/>Up Next — {formatDateShort(tomorrow)}<span className="text-[11px] font-normal text-gray-400 ml-1">{tomorrowLectures.length} lecture{tomorrowLectures.length > 1 ? 's' : ''}{tomorrowLectures.some(l=>l.isBacklog) && ' • backlog'}</span></h3><div className="space-y-2">{tomorrowLectures.slice(0,3).map(l=><LectureCard key={l.id} lecture={l} compact showDate onAdjust={(lec) => setAdjustLecture(lec)}/>)}</div></div>}
 
       <div className="animate-fadeIn stagger-6 card-surface p-5">
         <div className="flex items-center justify-between mb-3">
@@ -151,6 +174,13 @@ export default function TodayPage() {
           ))}
         </div>
       </div>
+
+      {adjustLecture && (
+        <LectureAdjustModal
+          lecture={adjustLecture}
+          onClose={() => setAdjustLecture(null)}
+        />
+      )}
     </div>
   );
 }
